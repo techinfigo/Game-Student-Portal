@@ -1,0 +1,55 @@
+/**
+ * @license
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+export interface Student {
+  id: string;
+  name: string;
+  phone: string;
+  email: string;
+  joinedDate: string;
+  avatar?: string;
+}
+
+export type ExamTag = 'GATE' | 'ESE' | 'ISRO' | 'BARC' | 'General';
+
+export interface PdfItem {
+  id: string;
+  title: string;
+  description: string;
+  thumbnail: string;
+  examTag: ExamTag;
+  isFree: boolean;
+  price?: number;
+  isOwned?: boolean;
+  pageCount: number;
+}
+
+export interface VideoLecture {
+  id: string;
+  title: string;
+  subtitle: string;
+  thumbnail: string;
+  duration: string;
+  views: string;
+  tag: ExamTag;
+  youtubeId: string;
+}
+
+export interface Purchase {
+  id: string;
+  pdfTitle: string;
+  amount: number;
+  date: string;
+  paymentId: string;
+  status: 'Success' | 'Pending' | 'Failed';
+}
+
+export interface Announcement {
+  id: string;
+  title: string;
+  content: string;
+  date: string;
+  type: 'Important' | 'General' | 'New Batch';
+}

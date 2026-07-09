@@ -1,0 +1,6 @@
+{
+  "name": "GAME Academy Student Portal",
+  "description": "A premium student portal for GAME Academy, featuring PDF library, video lectures, and order tracking.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
