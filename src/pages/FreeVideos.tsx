@@ -41,14 +41,14 @@ export default function FreeVideos() {
         {filteredVideos.map((video) => (
           <div 
             key={video.id}
-            className="card-solid group card-hover cursor-pointer flex flex-col h-full"
+            className="card-solid group cursor-pointer flex flex-col h-full transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md"
             onClick={() => setSelectedVideo(video)}
           >
             <div className="relative aspect-video overflow-hidden rounded-t-xl bg-slate-100">
               <img 
                 src={video.thumbnail} 
                 alt={video.title} 
-                className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" 
+                className="w-full h-full object-cover transition-transform duration-700" 
               />
               <div className="absolute inset-0 bg-black/20 group-hover:bg-black/10 transition-colors" />
               <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">

@@ -17,12 +17,12 @@ const PdfCard: React.FC<PdfCardProps> = ({ pdf }) => {
   const canRead = pdf.isFree || pdf.isOwned;
 
   return (
-    <div className="card-solid flex flex-col h-full group card-hover cursor-pointer">
+    <div className="card-solid flex flex-col h-full group cursor-pointer transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md">
       <div className="relative aspect-square overflow-hidden bg-slate-100 rounded-t-xl border-b border-slate-100">
         <img 
           src={pdf.thumbnail} 
           alt={pdf.title} 
-          className={`w-full h-full object-cover transition-transform duration-700 group-hover:scale-105 ${!canRead ? 'grayscale opacity-40' : ''}`} 
+          className={`w-full h-full object-cover transition-transform duration-700 ${!canRead ? 'grayscale opacity-40' : ''}`} 
         />
         
         {/* Status Badges */}

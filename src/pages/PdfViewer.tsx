@@ -91,11 +91,11 @@ export default function PdfViewer() {
           </div>
 
           {/* Faint Diagonal Watermark */}
-          <div className="absolute inset-0 grid grid-cols-2 grid-rows-4 pointer-events-none overflow-hidden rotate-[-25deg] scale-150 opacity-[0.03]">
+          <div className="absolute inset-0 grid grid-cols-2 grid-rows-4 pointer-events-none overflow-hidden rotate-[-25deg] scale-150 opacity-[0.09]">
             {Array.from({ length: 16 }).map((_, i) => (
               <div key={i} className="text-black font-black text-3xl whitespace-nowrap p-16 flex flex-col items-center justify-center border border-black/5">
-                <span className="opacity-40">{mockStudent.name}</span>
-                <span className="text-xl opacity-20 mt-1">{mockStudent.phone}</span>
+                <span className="opacity-100">{mockStudent.name}</span>
+                <span className="text-xl opacity-80 mt-1">{mockStudent.phone}</span>
               </div>
             ))}
           </div>
