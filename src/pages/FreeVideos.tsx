@@ -19,63 +19,68 @@ export default function FreeVideos() {
   );
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+    <div className="space-y-12">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div>
-          <h2 className="text-2xl font-bold tracking-tight text-slate-900">Free Video Lectures</h2>
-          <p className="text-slate-500">Master core concepts with our conceptual videos</p>
+          <h2 className="text-3xl font-black text-slate-900 tracking-tight">Video Lectures</h2>
+          <p className="text-slate-500 font-medium">Conceptual sessions for competitive engineering exams.</p>
         </div>
-        <div className="relative w-full md:w-80">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+        <div className="relative w-full md:w-80 group">
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-game-teal transition-colors" size={18} />
           <input 
             type="text" 
             placeholder="Search lectures..." 
-            className="w-full bg-white border border-slate-200 rounded-2xl py-3 pl-10 pr-4 focus:outline-none focus:ring-2 focus:ring-game-teal/20 focus:border-game-teal transition-all card-shadow"
+            className="w-full bg-white border border-slate-200 rounded-xl py-3 pl-12 pr-4 text-sm focus:outline-none focus:ring-4 focus:ring-game-teal/5 focus:border-game-teal transition-all shadow-sm"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
           />
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {filteredVideos.map((video, i) => (
-          <motion.div 
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+        {filteredVideos.map((video) => (
+          <div 
             key={video.id}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: i * 0.1 }}
-            className="bg-white rounded-3xl overflow-hidden card-shadow border border-slate-100 group cursor-pointer"
+            className="card-solid group card-hover cursor-pointer flex flex-col h-full"
             onClick={() => setSelectedVideo(video)}
           >
-            <div className="relative aspect-video">
-              <img src={video.thumbnail} alt={video.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
-              <div className="absolute inset-0 bg-black/20 group-hover:bg-black/40 transition-colors flex items-center justify-center">
-                <div className="w-12 h-12 bg-game-gold text-game-teal rounded-full flex items-center justify-center transform group-hover:scale-110 transition-transform shadow-lg">
-                  <Play size={24} className="ml-1" />
+            <div className="relative aspect-video overflow-hidden rounded-t-xl bg-slate-100">
+              <img 
+                src={video.thumbnail} 
+                alt={video.title} 
+                className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" 
+              />
+              <div className="absolute inset-0 bg-black/20 group-hover:bg-black/10 transition-colors" />
+              <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                <div className="bg-game-teal text-white p-3 rounded-full shadow-lg transform scale-90 group-hover:scale-100 transition-transform">
+                  <Play size={20} fill="currentColor" />
                 </div>
               </div>
-              <div className="absolute bottom-3 right-3 bg-black/70 backdrop-blur-md text-white text-[10px] font-bold px-2 py-1 rounded-lg">
+              <div className="absolute bottom-2 right-2 bg-black/60 backdrop-blur-md text-white px-1.5 py-0.5 rounded text-[8px] font-black tracking-widest uppercase border border-white/10">
                 {video.duration}
               </div>
-              <div className="absolute top-3 left-3 bg-game-teal text-white text-[10px] font-bold px-2 py-1 rounded-lg uppercase tracking-wider">
-                {video.tag}
-              </div>
             </div>
-            <div className="p-5">
-              <h3 className="font-bold text-slate-900 group-hover:text-game-teal transition-colors line-clamp-1">{video.title}</h3>
-              <p className="text-xs text-slate-500 mt-1 line-clamp-1">{video.subtitle}</p>
-              <div className="flex items-center gap-4 mt-4 pt-4 border-t border-slate-50">
+            <div className="p-4 flex-1 flex flex-col">
+              <div className="flex items-center gap-2 mb-2">
+                <span className="label-caps !text-[7px] text-game-teal bg-game-teal/5 px-1.5 py-0.5 rounded border border-game-teal/10">
+                  {video.tag}
+                </span>
+              </div>
+              <h3 className="font-bold text-slate-900 text-[13px] leading-tight group-hover:text-game-teal transition-colors line-clamp-2 mb-2">{video.title}</h3>
+              <p className="text-[11px] text-slate-400 line-clamp-2 leading-relaxed mb-4">{video.subtitle}</p>
+              
+              <div className="mt-auto flex items-center gap-4 pt-3 border-t border-slate-50">
                 <div className="flex items-center gap-1.5 text-slate-400">
-                  <Eye size={14} />
-                  <span className="text-[10px] font-bold uppercase tracking-wider">{video.views} Views</span>
+                  <Eye size={12} className="opacity-60" />
+                  <span className="label-caps !text-[8px]">{video.views}</span>
                 </div>
                 <div className="flex items-center gap-1.5 text-slate-400">
-                  <Clock size={14} />
-                  <span className="text-[10px] font-bold uppercase tracking-wider">New</span>
+                  <Clock size={12} className="opacity-60" />
+                  <span className="label-caps !text-[8px]">Recent</span>
                 </div>
               </div>
             </div>
-          </motion.div>
+          </div>
         ))}
       </div>
 
@@ -86,27 +91,22 @@ export default function FreeVideos() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-950/90 backdrop-blur-sm"
+            className="fixed inset-0 z-[100] flex items-center justify-center p-4 md:p-8 bg-dark-slate/90 backdrop-blur-sm"
           >
-            <motion.div 
-              initial={{ scale: 0.9, y: 20 }}
-              animate={{ scale: 1, y: 0 }}
-              exit={{ scale: 0.9, y: 20 }}
-              className="bg-white w-full max-w-4xl rounded-3xl overflow-hidden card-shadow"
-            >
-              <div className="p-4 md:p-6 flex items-center justify-between border-b border-slate-100">
-                <div className="flex items-center gap-3">
-                  <div className="bg-red-50 p-2 rounded-xl text-red-600">
-                    <Youtube size={20} />
+            <div className="bg-white w-full max-w-5xl rounded-2xl overflow-hidden border border-slate-200 shadow-2xl">
+              <div className="p-5 flex items-center justify-between border-b border-slate-100 bg-slate-50/50">
+                <div className="flex items-center gap-4">
+                  <div className="p-2 bg-red-50 rounded-lg">
+                    <Youtube size={20} className="text-red-500" />
                   </div>
                   <div>
-                    <h3 className="font-bold text-slate-900 leading-tight">{selectedVideo.title}</h3>
-                    <p className="text-xs text-slate-500 uppercase font-bold tracking-widest">{selectedVideo.tag} Masterclass</p>
+                    <h3 className="font-black text-slate-900 text-sm tracking-tight">{selectedVideo.title}</h3>
+                    <p className="label-caps !text-[8px] opacity-60">Streaming Live from GAME Academy</p>
                   </div>
                 </div>
                 <button 
                   onClick={() => setSelectedVideo(null)}
-                  className="p-2 hover:bg-slate-100 rounded-full transition-colors text-slate-400 hover:text-slate-900"
+                  className="p-2 hover:bg-slate-200 rounded-lg transition-colors text-slate-400"
                 >
                   <X size={24} />
                 </button>
@@ -122,18 +122,19 @@ export default function FreeVideos() {
                   allowFullScreen
                 ></iframe>
               </div>
-              <div className="p-6 bg-slate-50">
-                <p className="text-sm text-slate-600 leading-relaxed">
-                  In this session, our expert mentors cover the foundational principles and advanced problem-solving techniques for <span className="font-bold text-game-teal">{selectedVideo.title}</span>. 
-                  Don't forget to check the PDF library for accompanying notes!
-                </p>
-                <div className="mt-4 flex flex-wrap gap-2">
-                  <span className="bg-white border border-slate-200 px-3 py-1 rounded-full text-[10px] font-bold text-slate-500 uppercase tracking-wider">Concept Oriented</span>
-                  <span className="bg-white border border-slate-200 px-3 py-1 rounded-full text-[10px] font-bold text-slate-500 uppercase tracking-wider">PYQ Solved</span>
-                  <span className="bg-white border border-slate-200 px-3 py-1 rounded-full text-[10px] font-bold text-slate-500 uppercase tracking-wider">English/Hindi</span>
+              <div className="p-8">
+                <div className="flex flex-col md:flex-row md:items-start justify-between gap-6">
+                  <div className="flex-1">
+                    <h4 className="label-caps !text-[10px] mb-2 text-slate-400">Lesson Description</h4>
+                    <p className="text-sm text-slate-600 leading-relaxed max-w-3xl">
+                      {selectedVideo.subtitle}. Study hard with GAME Academy expert faculty. 
+                      Check the study materials section for chapter notes and practice problems related to this session.
+                    </p>
+                  </div>
+                  <button className="btn-primary whitespace-nowrap">View Study Material</button>
                 </div>
               </div>
-            </motion.div>
+            </div>
           </motion.div>
         )}
       </AnimatePresence>

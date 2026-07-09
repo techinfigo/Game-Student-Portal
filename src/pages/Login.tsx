@@ -29,81 +29,76 @@ export default function Login() {
   return (
     <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
       <motion.div 
-        initial={{ opacity: 0, scale: 0.95 }}
-        animate={{ opacity: 1, scale: 1 }}
-        className="max-w-md w-full bg-white rounded-3xl p-8 card-shadow"
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="max-w-md w-full bg-white rounded-2xl p-10 shadow-xl shadow-slate-200/50 border border-slate-200"
       >
-        <div className="flex flex-col items-center mb-8">
-          <div className="bg-game-teal p-3 rounded-2xl mb-4">
-            <GraduationCap size={40} className="text-game-gold" />
+        <div className="flex flex-col items-center mb-12">
+          <div className="bg-game-teal p-3 rounded-xl mb-6 shadow-lg shadow-game-teal/20">
+            <GraduationCap size={40} className="text-white" />
           </div>
-          <h1 className="text-3xl font-bold text-game-teal tracking-tight">GAME Academy</h1>
-          <p className="text-slate-500 mt-1">Student Portal Login</p>
+          <h1 className="text-3xl font-black text-game-teal tracking-tighter">GAME Academy</h1>
+          <p className="label-caps !text-[10px] opacity-60 mt-2">Elite Study Portal for GATE</p>
         </div>
 
         {step === 1 ? (
           <form onSubmit={handleSendOtp} className="space-y-6">
             <div>
-              <label className="block text-sm font-semibold text-slate-700 mb-2">Phone Number</label>
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400">
+              <label className="block label-caps !text-[9px] mb-2.5 ml-1">Phone Number</label>
+              <div className="relative group">
+                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-300 group-focus-within:text-game-teal transition-colors">
                   <Phone size={18} />
                 </div>
                 <input
                   type="tel"
                   required
-                  placeholder="Enter 10-digit number"
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl py-3 pl-11 pr-4 focus:outline-none focus:ring-2 focus:ring-game-teal/20 focus:border-game-teal transition-all"
+                  placeholder="Enter your 10-digit number"
+                  className="w-full bg-white border border-slate-200 rounded-xl py-3.5 pl-12 pr-4 text-sm font-bold text-slate-900 focus:outline-none focus:ring-4 focus:ring-game-teal/5 focus:border-game-teal transition-all"
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
                 />
               </div>
             </div>
-            <button
-              type="submit"
-              className="w-full bg-game-teal text-white font-bold py-4 rounded-xl hover:bg-game-teal/90 transition-all transform active:scale-95 shadow-lg shadow-game-teal/20"
-            >
-              Get OTP
+            <button type="submit" className="w-full btn-primary !py-4 !rounded-xl !text-base !tracking-widest !uppercase !font-black shadow-xl shadow-game-teal/20">
+              Continue
             </button>
           </form>
         ) : (
           <form onSubmit={handleVerifyOtp} className="space-y-6">
             <div>
-              <label className="block text-sm font-semibold text-slate-700 mb-2">Enter OTP</label>
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400">
+              <label className="block label-caps !text-[9px] mb-2.5 ml-1">Verification Code</label>
+              <div className="relative group">
+                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-300 group-focus-within:text-game-teal transition-colors">
                   <ShieldCheck size={18} />
                 </div>
                 <input
                   type="text"
                   required
                   placeholder="Enter 6-digit code"
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl py-3 pl-11 pr-4 focus:outline-none focus:ring-2 focus:ring-game-teal/20 focus:border-game-teal transition-all"
+                  className="w-full bg-white border border-slate-200 rounded-xl py-3.5 pl-12 pr-4 text-sm font-bold text-slate-900 focus:outline-none focus:ring-4 focus:ring-game-teal/5 focus:border-game-teal transition-all"
                   value={otp}
                   onChange={(e) => setOtp(e.target.value)}
                 />
               </div>
-              <p className="text-xs text-slate-400 mt-2 text-center">OTP sent to {phone}</p>
+              <p className="text-[10px] text-slate-400 mt-3 font-medium px-1">We sent a secure code to <span className="text-slate-900 font-bold">{phone}</span></p>
             </div>
-            <button
-              type="submit"
-              className="w-full bg-game-teal text-white font-bold py-4 rounded-xl hover:bg-game-teal/90 transition-all transform active:scale-95 shadow-lg shadow-game-teal/20"
-            >
+            <button type="submit" className="w-full btn-primary !py-4 !rounded-xl !text-base !tracking-widest !uppercase !font-black shadow-xl shadow-game-teal/20">
               Verify & Login
             </button>
             <button
               type="button"
               onClick={() => setStep(1)}
-              className="w-full text-game-teal font-semibold text-sm hover:underline"
+              className="w-full text-slate-400 font-black text-[10px] uppercase tracking-widest hover:text-game-teal transition-colors"
             >
-              Change Phone Number
+              Change phone number
             </button>
           </form>
         )}
 
-        <div className="mt-8 pt-8 border-t border-slate-100">
-          <p className="text-center text-slate-400 text-sm">
-            Don't have an account? <span className="text-game-teal font-bold cursor-pointer">Contact Us</span>
+        <div className="mt-12 pt-8 border-t border-slate-100 text-center">
+          <p className="text-slate-400 text-xs font-medium">
+            Access restricted to active students. <br/>
+            <span className="text-game-teal font-black uppercase tracking-widest !text-[9px] cursor-pointer hover:underline underline-offset-4 decoration-2 mt-2 inline-block">Support Desk</span>
           </p>
         </div>
       </motion.div>

@@ -22,21 +22,23 @@ const navItems = [
 
 export default function BottomNav() {
   return (
-    <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 px-6 py-3 flex justify-between items-center z-50">
+    <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-slate-950 border-t border-white/5 px-2 py-1 flex justify-between items-center z-50 shadow-[0_-4px_12px_rgba(0,0,0,0.2)]">
       {navItems.map((item) => (
         <NavLink
           key={item.path}
           to={item.path}
           className={({ isActive }) => 
-            `flex flex-col items-center gap-1 transition-all duration-200 ${
-              isActive ? 'text-game-teal' : 'text-slate-400'
+            `flex flex-col items-center gap-1 transition-all duration-200 flex-1 py-2 ${
+              isActive ? 'text-game-teal' : 'text-slate-500'
             }`
           }
         >
           {({ isActive }) => (
             <>
-              <item.icon size={20} className={isActive ? 'stroke-[2.5px]' : 'stroke-2'} />
-              <span className="text-[10px] font-medium">{item.name}</span>
+              <item.icon size={20} className={isActive ? 'stroke-[2.5px]' : 'stroke-2 opacity-70'} />
+              <span className={`text-[9px] uppercase tracking-wider font-black ${isActive ? 'opacity-100' : 'opacity-60'}`}>
+                {item.name}
+              </span>
             </>
           )}
         </NavLink>

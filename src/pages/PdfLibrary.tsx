@@ -25,19 +25,19 @@ export default function PdfLibrary() {
   });
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-12">
       {/* Header & Search */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div>
-          <h2 className="text-2xl font-bold tracking-tight text-slate-900">PDF Study Materials</h2>
-          <p className="text-slate-500">Curated notes by top GATE & ESE educators</p>
+          <h2 className="text-3xl font-black text-slate-900 tracking-tight">Study Materials</h2>
+          <p className="text-slate-500 font-medium">Focused notes for GATE, ESE, and ISRO preparation.</p>
         </div>
-        <div className="relative w-full md:w-80">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+        <div className="relative w-full md:w-80 group">
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-game-teal transition-colors" size={18} />
           <input 
             type="text" 
-            placeholder="Search topics or exams..." 
-            className="w-full bg-white border border-slate-200 rounded-2xl py-3 pl-10 pr-4 focus:outline-none focus:ring-2 focus:ring-game-teal/20 focus:border-game-teal transition-all card-shadow"
+            placeholder="Search materials..." 
+            className="w-full bg-white border border-slate-200 rounded-xl py-3 pl-12 pr-4 text-sm focus:outline-none focus:ring-4 focus:ring-game-teal/5 focus:border-game-teal transition-all shadow-sm"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
           />
@@ -45,15 +45,15 @@ export default function PdfLibrary() {
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
+      <div className="flex gap-1 border-b border-slate-200 pb-0 overflow-x-auto scrollbar-hide">
         {['All', 'Free', 'Paid', 'My PDFs'].map((tab) => (
           <button
             key={tab}
             onClick={() => setActiveTab(tab as any)}
-            className={`px-6 py-2 rounded-xl text-sm font-bold whitespace-nowrap transition-all ${
+            className={`px-8 py-4 text-[10px] font-black uppercase tracking-[0.2em] border-b-2 transition-all whitespace-nowrap ${
               activeTab === tab 
-                ? 'bg-game-teal text-white shadow-md shadow-game-teal/20' 
-                : 'bg-white text-slate-500 border border-slate-100 hover:bg-slate-50'
+                ? 'border-game-teal text-game-teal' 
+                : 'border-transparent text-slate-400 hover:text-slate-600'
             }`}
           >
             {tab}
@@ -63,18 +63,19 @@ export default function PdfLibrary() {
 
       {/* Grid */}
       {filteredPdfs.length > 0 ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
           {filteredPdfs.map((pdf) => (
-            <div key={pdf.id}>
-              <PdfCard pdf={pdf} />
-            </div>
+            <PdfCard key={pdf.id} pdf={pdf} />
           ))}
         </div>
       ) : (
-        <div className="flex flex-col items-center justify-center py-20 text-slate-400">
-          <BookOpen size={48} className="mb-4 opacity-20" />
-          <p className="font-medium text-lg">No PDFs found for your selection</p>
-          <button onClick={() => {setActiveTab('All'); setSearchQuery('');}} className="text-game-teal font-bold mt-2 hover:underline">Clear all filters</button>
+        <div className="flex flex-col items-center justify-center py-24 text-slate-400 text-center">
+          <div className="bg-slate-100 p-6 rounded-full mb-6">
+            <BookOpen size={48} className="opacity-20" />
+          </div>
+          <p className="font-bold text-slate-900">No materials found</p>
+          <p className="text-sm mt-1">Try adjusting your search or category filters.</p>
+          <button onClick={() => {setActiveTab('All'); setSearchQuery('');}} className="btn-secondary mt-8">Reset filters</button>
         </div>
       )}
     </div>

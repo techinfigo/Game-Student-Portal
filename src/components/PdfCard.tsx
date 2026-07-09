@@ -3,6 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import React from 'react';
 import { Lock, CheckCircle } from 'lucide-react';
 import { PdfItem } from '../types';
 import { Link } from 'react-router-dom';
@@ -12,63 +13,86 @@ interface PdfCardProps {
   pdf: PdfItem;
 }
 
-export default function PdfCard({ pdf }: PdfCardProps) {
+const PdfCard: React.FC<PdfCardProps> = ({ pdf }) => {
   const canRead = pdf.isFree || pdf.isOwned;
 
   return (
-    <motion.div 
-      whileHover={{ y: -6 }}
-      className="bg-white rounded-3xl overflow-hidden card-shadow border border-slate-100 flex flex-col h-full group"
-    >
-      <div className="relative aspect-[3/4] overflow-hidden">
-        <img src={pdf.thumbnail} alt={pdf.title} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" />
-        <div className="absolute top-3 left-3 bg-white/90 backdrop-blur-sm px-2 py-1 rounded-lg text-[10px] font-bold text-game-teal uppercase tracking-wider">
-          {pdf.examTag}
+    <div className="card-solid flex flex-col h-full group card-hover cursor-pointer">
+      <div className="relative aspect-square overflow-hidden bg-slate-100 rounded-t-xl border-b border-slate-100">
+        <img 
+          src={pdf.thumbnail} 
+          alt={pdf.title} 
+          className={`w-full h-full object-cover transition-transform duration-700 group-hover:scale-105 ${!canRead ? 'grayscale opacity-40' : ''}`} 
+        />
+        
+        {/* Status Badges */}
+        <div className="absolute top-2 left-2 flex flex-col gap-1.5">
+          <div className="bg-white/90 backdrop-blur-sm px-1.5 py-0.5 rounded shadow-sm text-[8px] font-black text-slate-600 uppercase tracking-widest border border-slate-100">
+            {pdf.examTag}
+          </div>
+          {pdf.isFree && (
+            <div className="bg-game-gold/90 backdrop-blur-sm px-1.5 py-0.5 rounded shadow-sm text-[8px] font-black text-game-teal uppercase tracking-widest border border-game-gold/20">
+              Free
+            </div>
+          )}
         </div>
+
+        {!canRead && (
+          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+            <div className="bg-white/80 p-2 rounded-full shadow-lg border border-slate-100">
+              <Lock size={16} className="text-slate-400" />
+            </div>
+          </div>
+        )}
+        
         {pdf.isOwned && (
-          <div className="absolute top-3 right-3 bg-green-500 text-white px-2 py-1 rounded-lg text-[10px] font-bold uppercase flex items-center gap-1 shadow-lg">
-            <CheckCircle size={10} />
+          <div className="absolute top-2 right-2 bg-game-teal text-white px-1.5 py-0.5 rounded shadow-lg text-[8px] font-black uppercase tracking-widest flex items-center gap-1 border border-game-teal-dark/20">
+            <CheckCircle size={8} className="stroke-[3px]" />
             Owned
           </div>
         )}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-4">
-          <p className="text-white text-xs font-medium">{pdf.pageCount} Pages • High Quality</p>
-        </div>
       </div>
       
-      <div className="p-5 flex-1 flex flex-col">
-        <h3 className="font-bold text-slate-900 leading-tight mb-1 group-hover:text-game-teal transition-colors">{pdf.title}</h3>
-        <p className="text-xs text-slate-500 line-clamp-2 mb-4">{pdf.description}</p>
+      <div className="p-3 flex-1 flex flex-col">
+        <h3 className="font-bold text-slate-900 text-[13px] leading-tight mb-1.5 group-hover:text-game-teal transition-colors line-clamp-2">
+          {pdf.title}
+        </h3>
+        <div className="flex items-center gap-2 mb-2">
+          <span className="label-caps !text-[7px]">{pdf.pageCount} Pages</span>
+          <span className="h-0.5 w-0.5 bg-slate-200 rounded-full" />
+          <span className="label-caps !text-[7px]">Notes</span>
+        </div>
         
-        <div className="mt-auto pt-4 border-t border-slate-50 flex items-center justify-between">
+        <div className="mt-auto pt-2 border-t border-slate-50 flex items-center justify-between">
           {!canRead ? (
             <>
-              <div>
-                <p className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Price</p>
-                <p className="text-lg font-black text-slate-900">₹{pdf.price}</p>
+              <div className="flex flex-col">
+                <span className="label-caps !text-[6px] mb-0.5">Price</span>
+                <span className="text-sm font-black text-slate-900">₹{pdf.price}</span>
               </div>
               <button 
                 onClick={(e) => {
                   e.preventDefault();
                   // TODO: connect to Razorpay for payment
-                  alert(`Starting purchase for ₹${pdf.price}. (Razorpay UI would open here)`);
+                  alert(`Starting purchase for ₹${pdf.price}.`);
                 }}
-                className="flex items-center gap-2 bg-game-gold text-game-teal px-4 py-2 rounded-xl font-bold text-sm hover:brightness-105 active:scale-95 transition-all"
+                className="btn-primary !px-2.5 !py-1 !text-[9px] !rounded-md"
               >
-                <Lock size={14} />
                 Buy Now
               </button>
             </>
           ) : (
             <Link 
               to={`/library/${pdf.id}`} 
-              className="w-full text-center bg-game-teal text-white py-2.5 rounded-xl font-bold text-sm hover:bg-game-teal/90 active:scale-95 transition-all shadow-lg shadow-game-teal/20"
+              className="w-full text-center btn-primary !py-1.5 !text-[9px] !uppercase !tracking-widest !font-black !rounded-md"
             >
               Read Now
             </Link>
           )}
         </div>
       </div>
-    </motion.div>
+    </div>
   );
-}
+};
+
+export default PdfCard;
