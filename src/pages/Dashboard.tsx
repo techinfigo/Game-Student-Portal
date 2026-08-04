@@ -3,10 +3,15 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { BookOpen, Video, ShoppingBag, Bell, ChevronRight, User, Calendar } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { BookOpen, Video, ShoppingBag, Bell, ChevronRight, User, Calendar, BellOff } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { mockStudent, mockAnnouncements } from '../data/mockData';
+import { mockStudent } from '../data/mockData';
+import { getAll } from '../services/dataService';
+import { FirestoreAnnouncement } from '../types';
 import { motion } from 'motion/react';
+
+type AnnouncementDoc = FirestoreAnnouncement & { id: string };
 
 export default function Dashboard() {
   const quickLinks = [
@@ -14,6 +19,22 @@ export default function Dashboard() {
     { name: 'Free Videos', path: '/videos', icon: Video },
     { name: 'My Purchases', path: '/purchases', icon: ShoppingBag },
   ];
+
+  const [announcements, setAnnouncements] = useState<AnnouncementDoc[]>([]);
+  const [isLoadingAnnouncements, setIsLoadingAnnouncements] = useState(true);
+
+  useEffect(() => {
+    let isMounted = true;
+    getAll<FirestoreAnnouncement>('announcements').then((data) => {
+      if (isMounted) {
+        setAnnouncements(data.filter((a) => a.active === true));
+        setIsLoadingAnnouncements(false);
+      }
+    });
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   return (
     <div className="space-y-12">
@@ -70,34 +91,40 @@ export default function Dashboard() {
           <button className="btn-secondary !py-2 !px-4 text-xs">View all</button>
         </div>
 
-        <div className="space-y-4">
-          {mockAnnouncements.map((ann) => (
-            <div 
-              key={ann.id}
-              className="card-solid p-6 flex gap-6 hover:border-slate-300 transition-colors"
-            >
-              <div className={`mt-2 h-2 w-2 rounded-full shrink-0 ${
-                ann.type === 'Important' ? 'bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.4)]' : 
-                ann.type === 'New Batch' ? 'bg-game-teal shadow-[0_0_8px_rgba(13,92,99,0.4)]' : 'bg-slate-300'
-              }`} />
-              <div className="flex-1">
-                <div className="flex items-center gap-3 mb-2">
-                  <h4 className="font-bold text-slate-900 text-lg">{ann.title}</h4>
-                  <span className={`label-caps !text-[9px] px-2 py-1 rounded-md border ${
-                    ann.type === 'Important' ? 'border-red-100 text-red-600 bg-red-50' : 'border-slate-200 text-slate-500 bg-slate-50'
-                  }`}>
-                    {ann.type}
-                  </span>
-                </div>
-                <p className="text-sm text-slate-600 leading-relaxed max-w-2xl">{ann.content}</p>
-                <div className="mt-4 flex items-center gap-2">
-                  <Calendar size={12} className="text-slate-300" />
-                  <span className="label-caps !text-[9px]">{ann.date}</span>
+        {isLoadingAnnouncements ? (
+          <div className="flex items-center justify-center py-16">
+            <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-game-teal"></div>
+          </div>
+        ) : announcements.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-16 text-slate-400 text-center card-solid">
+            <div className="bg-slate-100 p-5 rounded-full mb-4">
+              <BellOff size={36} className="opacity-20" />
+            </div>
+            <p className="font-bold text-slate-900">No announcements right now</p>
+            <p className="text-sm mt-1">Check back later for updates from administration.</p>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {announcements.map((ann) => (
+              <div
+                key={ann.id}
+                className="card-solid p-6 flex gap-6 hover:border-slate-300 transition-colors"
+              >
+                <div className="mt-2 h-2 w-2 rounded-full shrink-0 bg-game-teal shadow-[0_0_8px_rgba(13,92,99,0.4)]" />
+                <div className="flex-1">
+                  <div className="flex items-center gap-3 mb-2">
+                    <h4 className="font-bold text-slate-900 text-lg">{ann.title}</h4>
+                  </div>
+                  <p className="text-sm text-slate-600 leading-relaxed max-w-2xl">{ann.message}</p>
+                  <div className="mt-4 flex items-center gap-2">
+                    <Calendar size={12} className="text-slate-300" />
+                    <span className="label-caps !text-[9px]">{ann.date}</span>
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
       </section>
     </div>
   );

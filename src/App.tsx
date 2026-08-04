@@ -12,6 +12,7 @@ const Dashboard = lazy(() => import('./pages/Dashboard'));
 const PdfLibrary = lazy(() => import('./pages/PdfLibrary'));
 const PdfViewer = lazy(() => import('./pages/PdfViewer'));
 const FreeVideos = lazy(() => import('./pages/FreeVideos'));
+const FreeResources = lazy(() => import('./pages/FreeResources'));
 const MyPurchases = lazy(() => import('./pages/MyPurchases'));
 const Profile = lazy(() => import('./pages/Profile'));
 
@@ -44,12 +45,16 @@ export default function App() {
               path="/library/:id" 
               element={isAuthenticated ? <PdfViewer /> : <Navigate to="/login" />} 
             />
-            <Route 
-              path="/videos" 
-              element={isAuthenticated ? <FreeVideos /> : <Navigate to="/login" />} 
+            <Route
+              path="/videos"
+              element={isAuthenticated ? <FreeVideos /> : <Navigate to="/login" />}
             />
-            <Route 
-              path="/purchases" 
+            <Route
+              path="/resources"
+              element={isAuthenticated ? <FreeResources /> : <Navigate to="/login" />}
+            />
+            <Route
+              path="/purchases"
               element={isAuthenticated ? <MyPurchases /> : <Navigate to="/login" />} 
             />
             <Route 

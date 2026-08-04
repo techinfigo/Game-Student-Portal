@@ -4,20 +4,22 @@
  */
 
 import { NavLink } from 'react-router-dom';
-import { 
-  LayoutDashboard, 
-  BookOpen, 
-  Video, 
-  ShoppingBag, 
-  User, 
+import {
+  LayoutDashboard,
+  BookOpen,
+  Video,
+  ShoppingBag,
+  User,
   LogOut,
-  GraduationCap
+  GraduationCap,
+  FolderOpen
 } from 'lucide-react';
 
 const navItems = [
   { name: 'Dashboard', path: '/', icon: LayoutDashboard },
   { name: 'PDF Library', path: '/library', icon: BookOpen },
   { name: 'Free Videos', path: '/videos', icon: Video },
+  { name: 'Free Resources', path: '/resources', icon: FolderOpen },
   { name: 'My Purchases', path: '/purchases', icon: ShoppingBag },
   { name: 'Profile', path: '/profile', icon: User },
 ];

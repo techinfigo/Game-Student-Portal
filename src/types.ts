@@ -53,3 +53,31 @@ export interface Announcement {
   date: string;
   type: 'Important' | 'General' | 'New Batch';
 }
+
+export interface FirestoreVideoLecture {
+  title: string;
+  subtitle?: string;
+  tag?: string;
+  duration?: string;
+  views?: string;
+  youtubeUrl?: string;
+  videoId?: string;
+  thumbnailUrl?: string;
+}
+
+export interface FirestoreResource {
+  title: string;
+  description?: string;
+  category?: string;
+  fileOrLink: string;
+  image?: string;
+  action?: string;
+  resourceKind?: string;
+}
+
+export interface FirestoreAnnouncement {
+  title: string;
+  message: string;
+  date: string;
+  active?: boolean;
+}
