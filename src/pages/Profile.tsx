@@ -7,12 +7,14 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { User, Phone, Camera, LogOut } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { getInitials } from '../utils';
 import { motion } from 'motion/react';
 
 export default function Profile() {
   const { student, logout } = useAuth();
   const navigate = useNavigate();
   const [isEditing, setIsEditing] = useState(false);
+  const [avatarError, setAvatarError] = useState(false);
   const [formData, setFormData] = useState({
     name: student?.name || '',
     email: student?.email || ''
@@ -44,8 +46,17 @@ export default function Profile() {
       <div className="flex flex-col items-center text-center">
         <div className="relative group">
           <div className="w-32 h-32 rounded-3xl overflow-hidden card-solid border-4 border-white shadow-xl flex items-center justify-center bg-slate-100">
-            {student?.avatar ? (
-              <img src={student.avatar} alt="Profile" className="w-full h-full object-cover grayscale-[0.2] group-hover:grayscale-0 transition-all duration-500" />
+            {student?.avatar && !avatarError ? (
+              <img
+                src={student.avatar}
+                alt="Profile"
+                className="w-full h-full object-cover grayscale-[0.2] group-hover:grayscale-0 transition-all duration-500"
+                onError={() => setAvatarError(true)}
+              />
+            ) : student?.name ? (
+              <div className="w-full h-full flex items-center justify-center bg-game-teal/10 text-game-teal font-black text-3xl">
+                {getInitials(student.name)}
+              </div>
             ) : (
               <User size={48} className="text-slate-300" />
             )}

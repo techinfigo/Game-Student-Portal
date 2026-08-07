@@ -81,3 +81,7 @@ export interface FirestoreAnnouncement {
   date: string;
   active?: boolean;
 }
+
+export interface FirestoreSiteSettings {
+  classplusPortalLink?: string;
+}
