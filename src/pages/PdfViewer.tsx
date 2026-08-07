@@ -6,15 +6,19 @@
 import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ChevronLeft, ChevronRight, ZoomIn, ZoomOut, ArrowLeft, MoreVertical, ShieldCheck, GraduationCap } from 'lucide-react';
-import { mockPdfs, mockStudent } from '../data/mockData';
+import { mockPdfs } from '../data/mockData';
+import { useAuth } from '../context/AuthContext';
 import { motion } from 'motion/react';
 
 export default function PdfViewer() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { student } = useAuth();
   const pdf = mockPdfs.find(p => p.id === id);
   const [currentPage, setCurrentPage] = useState(1);
   const [zoom, setZoom] = useState(100);
+  const watermarkName = student?.name || 'Student';
+  const watermarkPhone = student?.phoneNumber || '';
 
   if (!pdf) return <div className="p-8 text-center">PDF not found</div>;
 
@@ -94,8 +98,8 @@ export default function PdfViewer() {
           <div className="absolute inset-0 grid grid-cols-2 grid-rows-4 pointer-events-none overflow-hidden rotate-[-25deg] scale-150 opacity-[0.09]">
             {Array.from({ length: 16 }).map((_, i) => (
               <div key={i} className="text-black font-black text-3xl whitespace-nowrap p-16 flex flex-col items-center justify-center border border-black/5">
-                <span className="opacity-100">{mockStudent.name}</span>
-                <span className="text-xl opacity-80 mt-1">{mockStudent.phone}</span>
+                <span className="opacity-100">{watermarkName}</span>
+                <span className="text-xl opacity-80 mt-1">{watermarkPhone}</span>
               </div>
             ))}
           </div>

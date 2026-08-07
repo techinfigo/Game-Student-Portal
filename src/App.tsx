@@ -6,6 +6,7 @@
 import { Suspense, lazy } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import Layout from './components/Layout';
+import { AuthProvider, useAuth } from './context/AuthContext';
 
 const Login = lazy(() => import('./pages/Login'));
 const Dashboard = lazy(() => import('./pages/Dashboard'));
@@ -22,9 +23,18 @@ const LoadingFallback = () => (
   </div>
 );
 
-export default function App() {
-  // Assume user is already logged in for this demo, but route still exists
-  const isAuthenticated = true; 
+function AppRoutes() {
+  const { user, loading } = useAuth();
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-slate-50">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-game-teal"></div>
+      </div>
+    );
+  }
+
+  const isAuthenticated = !!user;
 
   return (
     <BrowserRouter>
@@ -67,5 +77,13 @@ export default function App() {
         </Suspense>
       </Layout>
     </BrowserRouter>
+  );
+}
+
+export default function App() {
+  return (
+    <AuthProvider>
+      <AppRoutes />
+    </AuthProvider>
   );
 }

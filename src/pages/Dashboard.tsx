@@ -6,7 +6,7 @@
 import { useEffect, useState } from 'react';
 import { BookOpen, Video, ShoppingBag, Bell, ChevronRight, User, Calendar, BellOff } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { mockStudent } from '../data/mockData';
+import { useAuth } from '../context/AuthContext';
 import { getAll } from '../services/dataService';
 import { FirestoreAnnouncement } from '../types';
 import { motion } from 'motion/react';
@@ -14,6 +14,9 @@ import { motion } from 'motion/react';
 type AnnouncementDoc = FirestoreAnnouncement & { id: string };
 
 export default function Dashboard() {
+  const { student } = useAuth();
+  const studentName = student?.name || 'Student';
+
   const quickLinks = [
     { name: 'PDF Library', path: '/library', icon: BookOpen },
     { name: 'Free Videos', path: '/videos', icon: Video },
@@ -42,16 +45,20 @@ export default function Dashboard() {
       <section className="flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div>
           <h2 className="text-3xl font-black text-slate-900 tracking-tight">
-            Welcome, {mockStudent.name}
+            Welcome, {studentName}
           </h2>
           <p className="text-slate-500 mt-1 font-medium">Your learning progress and updates for today.</p>
         </div>
         <Link to="/profile" className="flex items-center gap-4 bg-white p-3 rounded-xl border border-slate-200 hover:border-slate-300 transition-all group shadow-sm">
-          <div className="w-10 h-10 rounded-lg overflow-hidden bg-slate-100 grayscale-[0.2]">
-            <img src={mockStudent.avatar} alt="Profile" className="w-full h-full object-cover" />
+          <div className="w-10 h-10 rounded-lg overflow-hidden bg-slate-100 grayscale-[0.2] flex items-center justify-center">
+            {student?.avatar ? (
+              <img src={student.avatar} alt="Profile" className="w-full h-full object-cover" />
+            ) : (
+              <User size={18} className="text-slate-400" />
+            )}
           </div>
           <div>
-            <p className="text-sm font-black text-slate-900 leading-tight">{mockStudent.name}</p>
+            <p className="text-sm font-black text-slate-900 leading-tight">{studentName}</p>
             <p className="label-caps !text-[9px]">GATE Aspirant</p>
           </div>
           <ChevronRight size={14} className="text-slate-300 group-hover:translate-x-1 transition-transform ml-2" />

@@ -3,36 +3,59 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { User, Phone, Camera, LogOut } from 'lucide-react';
-import { mockStudent } from '../data/mockData';
+import { useAuth } from '../context/AuthContext';
 import { motion } from 'motion/react';
 
 export default function Profile() {
+  const { student, logout } = useAuth();
+  const navigate = useNavigate();
   const [isEditing, setIsEditing] = useState(false);
   const [formData, setFormData] = useState({
-    name: mockStudent.name,
-    email: mockStudent.email
+    name: student?.name || '',
+    email: student?.email || ''
   });
+
+  useEffect(() => {
+    if (student) {
+      setFormData({ name: student.name, email: student.email || '' });
+    }
+  }, [student]);
+
+  const studentName = student?.name || 'Student';
+  const studentEmail = student?.email || 'Not provided';
+  const studentPhone = student?.phoneNumber || 'Not available';
+  const joinedDate = student?.joinedDate || '—';
 
   const handleSave = () => {
     // TODO: connect to Firebase for updating user profile
     setIsEditing(false);
   };
 
+  const handleSignOut = async () => {
+    await logout();
+    navigate('/login');
+  };
+
   return (
     <div className="max-w-2xl mx-auto space-y-12">
       <div className="flex flex-col items-center text-center">
         <div className="relative group">
-          <div className="w-32 h-32 rounded-3xl overflow-hidden card-solid border-4 border-white shadow-xl">
-            <img src={mockStudent.avatar} alt="Profile" className="w-full h-full object-cover grayscale-[0.2] group-hover:grayscale-0 transition-all duration-500" />
+          <div className="w-32 h-32 rounded-3xl overflow-hidden card-solid border-4 border-white shadow-xl flex items-center justify-center bg-slate-100">
+            {student?.avatar ? (
+              <img src={student.avatar} alt="Profile" className="w-full h-full object-cover grayscale-[0.2] group-hover:grayscale-0 transition-all duration-500" />
+            ) : (
+              <User size={48} className="text-slate-300" />
+            )}
           </div>
           <button className="absolute -bottom-2 -right-2 bg-game-teal text-white p-2.5 rounded-xl shadow-lg border-2 border-white hover:bg-game-teal-dark transition-all scale-90 group-hover:scale-100">
             <Camera size={18} />
           </button>
         </div>
-        <h2 className="mt-6 text-3xl font-black text-slate-900 tracking-tight">{mockStudent.name}</h2>
-        <p className="label-caps !text-[10px] mt-1">Premium Member since {mockStudent.joinedDate}</p>
+        <h2 className="mt-6 text-3xl font-black text-slate-900 tracking-tight">{studentName}</h2>
+        <p className="label-caps !text-[10px] mt-1">Premium Member since {joinedDate}</p>
       </div>
 
       <div className="card-solid divide-y divide-slate-50 bg-white">
@@ -63,7 +86,7 @@ export default function Profile() {
                   onChange={(e) => setFormData({...formData, name: e.target.value})}
                 />
               ) : (
-                <p className="text-base font-bold text-slate-900 px-0.5">{mockStudent.name}</p>
+                <p className="text-base font-bold text-slate-900 px-0.5">{studentName}</p>
               )}
             </div>
 
@@ -77,7 +100,7 @@ export default function Profile() {
                   onChange={(e) => setFormData({...formData, email: e.target.value})}
                 />
               ) : (
-                <p className="text-base font-bold text-slate-900 px-0.5">{mockStudent.email}</p>
+                <p className="text-base font-bold text-slate-900 px-0.5">{studentEmail}</p>
               )}
             </div>
 
@@ -85,7 +108,7 @@ export default function Profile() {
               <div>
                 <label className="block label-caps !text-[9px] mb-2 ml-0.5">Contact Phone</label>
                 <div className="flex items-center gap-2">
-                  <p className="text-base font-bold text-slate-400 px-0.5">{mockStudent.phone}</p>
+                  <p className="text-base font-bold text-slate-400 px-0.5">{studentPhone}</p>
                   <span className="text-[8px] font-black bg-green-50 text-green-600 px-1.5 py-0.5 rounded border border-green-100 uppercase tracking-widest">Verified</span>
                 </div>
               </div>
@@ -111,7 +134,10 @@ export default function Profile() {
       </div>
 
       <div className="flex justify-center pt-8">
-        <button className="flex items-center gap-2 text-slate-400 hover:text-red-500 font-black text-[10px] uppercase tracking-[0.2em] transition-all group">
+        <button
+          onClick={handleSignOut}
+          className="flex items-center gap-2 text-slate-400 hover:text-red-500 font-black text-[10px] uppercase tracking-[0.2em] transition-all group"
+        >
           <LogOut size={16} className="group-hover:rotate-12 transition-transform" />
           Sign out from this device
         </button>
