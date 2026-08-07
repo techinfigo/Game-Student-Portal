@@ -53,7 +53,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           const data = snapshot.data();
           setStudent({
             uid: firebaseUser.uid,
-            name: data.name || fallbackProfile.name,
+            name: data.name || data.displayName || fallbackProfile.name,
             phoneNumber: data.phoneNumber || fallbackProfile.phoneNumber,
             email: data.email,
             joinedDate: data.joinedDate,

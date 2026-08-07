@@ -5,35 +5,62 @@
 
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { doc, updateDoc } from 'firebase/firestore';
 import { User, Phone, Camera, LogOut } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { db } from '../firebase';
 import { getInitials } from '../utils';
 import { motion } from 'motion/react';
 
 export default function Profile() {
-  const { student, logout } = useAuth();
+  const { student, user, logout } = useAuth();
   const navigate = useNavigate();
   const [isEditing, setIsEditing] = useState(false);
   const [avatarError, setAvatarError] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     name: student?.name || '',
+    email: student?.email || ''
+  });
+  const [profileView, setProfileView] = useState({
+    name: student?.name || 'Student',
     email: student?.email || ''
   });
 
   useEffect(() => {
     if (student) {
       setFormData({ name: student.name, email: student.email || '' });
+      setProfileView({ name: student.name, email: student.email || '' });
     }
   }, [student]);
 
-  const studentName = student?.name || 'Student';
-  const studentEmail = student?.email || 'Not provided';
+  const studentName = profileView.name || 'Student';
+  const studentEmail = profileView.email || 'Not provided';
   const studentPhone = student?.phoneNumber || 'Not available';
   const joinedDate = student?.joinedDate || '—';
 
-  const handleSave = () => {
-    // TODO: connect to Firebase for updating user profile
-    setIsEditing(false);
+  const handleSave = async () => {
+    if (!user) {
+      setIsEditing(false);
+      return;
+    }
+
+    setIsSaving(true);
+    setSaveError(null);
+    try {
+      await updateDoc(doc(db, 'users', user.uid), {
+        name: formData.name,
+        email: formData.email || ''
+      });
+      setProfileView({ name: formData.name || 'Student', email: formData.email });
+      setIsEditing(false);
+    } catch (error) {
+      console.error('Failed to save profile:', error);
+      setSaveError('Failed to save changes. Please try again.');
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const handleSignOut = async () => {
@@ -78,13 +105,18 @@ export default function Profile() {
                 Account Settings
               </h3>
             </div>
-            <button 
+            <button
               onClick={() => isEditing ? handleSave() : setIsEditing(true)}
-              className="text-game-teal font-black text-[10px] uppercase tracking-[0.2em] hover:underline decoration-2 underline-offset-4"
+              disabled={isSaving}
+              className="text-game-teal font-black text-[10px] uppercase tracking-[0.2em] hover:underline decoration-2 underline-offset-4 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {isEditing ? 'Save Changes' : 'Edit Information'}
+              {isEditing ? (isSaving ? 'Saving...' : 'Save Changes') : 'Edit Information'}
             </button>
           </div>
+
+          {saveError && (
+            <p className="text-xs font-bold text-red-500 -mt-6">{saveError}</p>
+          )}
 
           <div className="space-y-8">
             <div className="group">
