@@ -85,3 +85,25 @@ export interface FirestoreAnnouncement {
 export interface FirestoreSiteSettings {
   classplusPortalLink?: string;
 }
+
+export interface FirestorePdf {
+  title: string;
+  description?: string;
+  thumbnail?: string;
+  examTag?: string;
+  category?: string;
+  isFree?: boolean;
+  price?: number;
+  fileUrl?: string;
+  pageCount?: number;
+}
+
+export interface FirestorePurchase {
+  uid: string;
+  pdfId: string;
+  pdfTitle: string;
+  amount: number;
+  date: string;
+  paymentId?: string;
+  status: 'Success' | 'Pending' | 'Failed';
+}
