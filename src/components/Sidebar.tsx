@@ -14,6 +14,7 @@ import {
   GraduationCap,
   FolderOpen
 } from 'lucide-react';
+import { useBranding } from '../hooks/useBranding';
 
 const navItems = [
   { name: 'Dashboard', path: '/', icon: LayoutDashboard },
@@ -25,14 +26,16 @@ const navItems = [
 ];
 
 export default function Sidebar() {
+  const { logoUrl } = useBranding();
+
   return (
     <div className="hidden lg:flex flex-col w-64 bg-slate-950 border-r border-white/5 h-screen sticky top-0">
       <div className="p-8 flex justify-center">
         <div className="w-full h-12 flex items-center justify-center">
-          <img 
-            src="/logo.png" 
-            alt="Logo" 
-            className="max-h-full w-auto object-contain"
+          <img
+            src={logoUrl || '/logo.png'}
+            alt="Logo"
+            className="h-10 max-h-full w-auto object-contain"
             onError={(e) => {
               (e.target as HTMLImageElement).style.display = 'none';
               const parent = (e.target as HTMLImageElement).parentElement;

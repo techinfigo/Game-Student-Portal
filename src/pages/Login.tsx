@@ -8,6 +8,7 @@ import { useNavigate } from 'react-router-dom';
 import { GraduationCap, Phone, ShieldCheck, Loader2, AlertCircle } from 'lucide-react';
 import { motion } from 'motion/react';
 import { sendOtp, verifyOtp } from '../services/authService';
+import { useBranding } from '../hooks/useBranding';
 
 export default function Login() {
   const [phone, setPhone] = useState('');
@@ -16,6 +17,7 @@ export default function Login() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
   const navigate = useNavigate();
+  const { logoUrl } = useBranding();
 
   const handleSendOtp = async (e: FormEvent) => {
     e.preventDefault();
@@ -77,10 +79,16 @@ export default function Login() {
         className="max-w-md w-full bg-white rounded-2xl p-10 shadow-xl shadow-slate-200/50 border border-slate-200"
       >
         <div className="flex flex-col items-center mb-12">
-          <div className="bg-game-teal p-3 rounded-xl mb-6 shadow-lg shadow-game-teal/20">
-            <GraduationCap size={40} className="text-white" />
-          </div>
-          <h1 className="text-3xl font-black text-game-teal tracking-tighter">GAME Academy</h1>
+          {logoUrl ? (
+            <img src={logoUrl} alt="GAME Academy" className="h-10 object-contain mb-6" />
+          ) : (
+            <>
+              <div className="bg-game-teal p-3 rounded-xl mb-6 shadow-lg shadow-game-teal/20">
+                <GraduationCap size={40} className="text-white" />
+              </div>
+              <h1 className="text-3xl font-black text-game-teal tracking-tighter">GAME Academy</h1>
+            </>
+          )}
           <p className="label-caps !text-[10px] opacity-60 mt-2">Elite Study Portal for GATE</p>
         </div>
 
