@@ -47,3 +47,11 @@ export async function verifyOtp(phone: string, otp: string): Promise<VerifyOtpRe
   await signInWithCustomToken(auth, result.token);
   return result;
 }
+
+/**
+ * Signs a student in with a Firebase custom token handed over by the website
+ * (the `?sso=` hand-off). Throws if the token is invalid or expired.
+ */
+export async function signInWithSsoToken(token: string): Promise<void> {
+  await signInWithCustomToken(auth, token);
+}

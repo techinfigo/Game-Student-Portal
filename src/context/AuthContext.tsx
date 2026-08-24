@@ -7,6 +7,25 @@ import { createContext, useContext, useEffect, useState, ReactNode } from 'react
 import { onAuthStateChanged, signOut, User } from 'firebase/auth';
 import { doc, getDoc } from 'firebase/firestore';
 import { auth, db } from '../firebase';
+import { signInWithSsoToken } from '../services/authService';
+
+/**
+ * The website hands a logged-in student over as `/?sso=<firebaseCustomToken>`.
+ * Read it at module load — before React mounts and before any route decides —
+ * and strip it from the URL straight away so the token is never left visible in
+ * the address bar, in history, or in a shared link. Reading it once here also
+ * means a StrictMode double-mount can't find a half-consumed URL.
+ */
+const ssoToken = (() => {
+  if (typeof window === 'undefined') return null;
+  const token = new URLSearchParams(window.location.search).get('sso');
+  if (token) {
+    window.history.replaceState({}, '', window.location.pathname);
+  }
+  return token;
+})();
+
+let ssoAttempted = false;
 
 export interface StudentProfile {
   uid: string;
@@ -21,6 +40,7 @@ interface AuthContextValue {
   user: User | null;
   student: StudentProfile | null;
   loading: boolean;
+  ssoPending: boolean;
   logout: () => Promise<void>;
 }
 
@@ -30,6 +50,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [student, setStudent] = useState<StudentProfile | null>(null);
   const [loading, setLoading] = useState(true);
+  const [ssoPending, setSsoPending] = useState(!!ssoToken);
+
+  useEffect(() => {
+    if (!ssoToken || ssoAttempted) return;
+    ssoAttempted = true;
+
+    signInWithSsoToken(ssoToken)
+      .catch((error) => {
+        // An invalid or expired token is not fatal: drop through to the normal
+        // login flow instead of crashing the app.
+        console.error('SSO sign-in failed:', error);
+      })
+      .finally(() => {
+        setSsoPending(false);
+      });
+  }, []);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
@@ -78,7 +114,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, student, loading, logout }}>
+    <AuthContext.Provider
+      value={{ user, student, loading: loading || ssoPending, ssoPending, logout }}
+    >
       {children}
     </AuthContext.Provider>
   );

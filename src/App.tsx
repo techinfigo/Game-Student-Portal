@@ -24,12 +24,15 @@ const LoadingFallback = () => (
 );
 
 function AppRoutes() {
-  const { user, loading } = useAuth();
+  const { user, loading, ssoPending } = useAuth();
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-slate-50">
+      <div className="flex flex-col items-center justify-center min-h-screen bg-slate-50">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-game-teal"></div>
+        {ssoPending && (
+          <p className="mt-4 text-sm text-slate-500">Signing you in...</p>
+        )}
       </div>
     );
   }
