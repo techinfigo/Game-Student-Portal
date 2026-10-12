@@ -10,8 +10,9 @@ import * as pdfjsLib from 'pdfjs-dist';
 import type { PDFDocumentProxy } from 'pdfjs-dist';
 import pdfWorkerSrc from 'pdfjs-dist/build/pdf.worker.mjs?url';
 import { useAuth } from '../context/AuthContext';
-import { getDocById } from '../services/dataService';
-import { FirestorePdf } from '../types';
+import { getDocById, getWhere } from '../services/dataService';
+import { FirestorePdf, FirestorePurchase } from '../types';
+import { auth } from '../firebase';
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorkerSrc;
 
@@ -59,8 +60,34 @@ export default function PdfViewer() {
 
   const isFree = pdfMeta?.isFree === true;
 
+  const [hasPurchased, setHasPurchased] = useState(false);
+  const [checkingAccess, setCheckingAccess] = useState(true);
+
+  // Unlock a paid PDF the student has bought — not only free ones.
   useEffect(() => {
-    if (!pdfMeta || !isFree || !pdfMeta.fileUrl) return;
+    const uid = auth.currentUser?.uid;
+    if (!id || !uid) {
+      setCheckingAccess(false);
+      return;
+    }
+    let active = true;
+    getWhere<FirestorePurchase>('purchases', 'uid', uid)
+      .then((rows) => {
+        if (active) setHasPurchased(rows.some((r) => r.pdfId === id));
+      })
+      .catch(() => {})
+      .finally(() => {
+        if (active) setCheckingAccess(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, [id]);
+
+  const hasAccess = isFree || hasPurchased;
+
+  useEffect(() => {
+    if (!pdfMeta || !hasAccess || !pdfMeta.fileUrl) return;
     let isCancelled = false;
     setIsRenderingDoc(true);
     setLoadError('');
@@ -85,7 +112,7 @@ export default function PdfViewer() {
     return () => {
       isCancelled = true;
     };
-  }, [pdfMeta, isFree]);
+  }, [pdfMeta, hasAccess]);
 
   useEffect(() => {
     if (!pdfDoc) return;
@@ -129,7 +156,15 @@ export default function PdfViewer() {
     );
   }
 
-  if (!isFree) {
+  if (checkingAccess) {
+    return (
+      <div className="fixed inset-0 bg-slate-100 z-[60] flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-game-teal"></div>
+      </div>
+    );
+  }
+
+  if (!hasAccess) {
     return (
       <div className="fixed inset-0 bg-slate-100 z-[60] flex flex-col items-center justify-center gap-6 text-center px-6">
         <div className="bg-white p-8 rounded-full shadow-lg border border-slate-100">

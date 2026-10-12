@@ -11,10 +11,13 @@ import { Link } from 'react-router-dom';
 interface PdfCardProps {
   pdf: FirestorePdf & { id: string };
   onBuy: () => void;
+  owned?: boolean;
+  busy?: boolean;
 }
 
-const PdfCard: React.FC<PdfCardProps> = ({ pdf, onBuy }) => {
+const PdfCard: React.FC<PdfCardProps> = ({ pdf, onBuy, owned = false, busy = false }) => {
   const isFree = pdf.isFree === true;
+  const accessible = isFree || owned;
 
   return (
     <div className="card-solid flex flex-col h-full group transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md">
@@ -23,7 +26,7 @@ const PdfCard: React.FC<PdfCardProps> = ({ pdf, onBuy }) => {
           <img
             src={pdf.thumbnail}
             alt={pdf.title}
-            className={`w-full h-full object-cover transition-transform duration-700 ${!isFree ? 'grayscale opacity-40' : ''}`}
+            className={`w-full h-full object-cover transition-transform duration-700 ${!accessible ? 'grayscale opacity-40' : ''}`}
           />
         ) : (
           <div className="w-full h-full flex items-center justify-center">
@@ -42,6 +45,10 @@ const PdfCard: React.FC<PdfCardProps> = ({ pdf, onBuy }) => {
             <div className="bg-game-gold/90 backdrop-blur-sm px-1.5 py-0.5 rounded shadow-sm text-[8px] font-black text-game-teal uppercase tracking-widest border border-game-gold/20">
               Free
             </div>
+          ) : owned ? (
+            <div className="bg-game-teal/90 backdrop-blur-sm px-1.5 py-0.5 rounded shadow-sm text-[8px] font-black text-white uppercase tracking-widest border border-game-teal/20">
+              Owned
+            </div>
           ) : (
             <div className="bg-slate-900/85 backdrop-blur-sm px-1.5 py-0.5 rounded shadow-sm text-[8px] font-black text-white uppercase tracking-widest border border-slate-900/20">
               ₹{pdf.price ?? '—'}
@@ -49,7 +56,7 @@ const PdfCard: React.FC<PdfCardProps> = ({ pdf, onBuy }) => {
           )}
         </div>
 
-        {!isFree && (
+        {!accessible && (
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
             <div className="bg-white/80 p-2 rounded-full shadow-lg border border-slate-100">
               <Lock size={16} className="text-slate-400" />
@@ -73,7 +80,7 @@ const PdfCard: React.FC<PdfCardProps> = ({ pdf, onBuy }) => {
         </div>
 
         <div className="mt-auto pt-2 border-t border-slate-50 flex items-center justify-between">
-          {!isFree ? (
+          {!accessible ? (
             <>
               <div className="flex flex-col">
                 <span className="label-caps !text-[6px] mb-0.5">Price</span>
@@ -81,9 +88,10 @@ const PdfCard: React.FC<PdfCardProps> = ({ pdf, onBuy }) => {
               </div>
               <button
                 onClick={onBuy}
-                className="btn-primary !px-2.5 !py-1 !text-[9px] !rounded-md"
+                disabled={busy}
+                className="btn-primary !px-2.5 !py-1 !text-[9px] !rounded-md disabled:opacity-60"
               >
-                Buy to Read
+                {busy ? 'Processing…' : 'Buy to Read'}
               </button>
             </>
           ) : (
