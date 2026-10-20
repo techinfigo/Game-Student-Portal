@@ -90,6 +90,9 @@ export interface FirestorePdf {
   title: string;
   description?: string;
   thumbnail?: string;
+  // Admin panel saves the cover image under `thumbnailUrl`; keep `thumbnail`
+  // too for backward compatibility.
+  thumbnailUrl?: string;
   examTag?: string;
   category?: string;
   isFree?: boolean;

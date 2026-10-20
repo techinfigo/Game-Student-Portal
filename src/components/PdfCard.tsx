@@ -18,13 +18,14 @@ interface PdfCardProps {
 const PdfCard: React.FC<PdfCardProps> = ({ pdf, onBuy, owned = false, busy = false }) => {
   const isFree = pdf.isFree === true;
   const accessible = isFree || owned;
+  const cover = pdf.thumbnailUrl || pdf.thumbnail;
 
   return (
     <div className="card-solid flex flex-col h-full group transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md">
       <div className="relative aspect-square overflow-hidden bg-slate-100 rounded-t-xl border-b border-slate-100">
-        {pdf.thumbnail ? (
+        {cover ? (
           <img
-            src={pdf.thumbnail}
+            src={cover}
             alt={pdf.title}
             className={`w-full h-full object-cover transition-transform duration-700 ${!accessible ? 'grayscale opacity-40' : ''}`}
           />

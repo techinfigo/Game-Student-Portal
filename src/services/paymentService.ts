@@ -6,7 +6,7 @@
 import { auth } from '../firebase';
 
 const WEBSITE_API_URL =
-  import.meta.env.VITE_WEBSITE_API_URL || 'https://game-website-next-js.vercel.app';
+  import.meta.env.VITE_WEBSITE_API_URL || 'https://www.gameacademy.in';
 
 declare global {
   interface Window {

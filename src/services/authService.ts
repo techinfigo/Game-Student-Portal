@@ -7,7 +7,7 @@ import { signInWithCustomToken } from "firebase/auth";
 import { auth } from "../firebase";
 
 const WEBSITE_API_URL =
-  import.meta.env.VITE_WEBSITE_API_URL || "https://game-website-next-js.vercel.app";
+  import.meta.env.VITE_WEBSITE_API_URL || "https://www.gameacademy.in";
 
 export interface VerifyOtpResult {
   token: string;
