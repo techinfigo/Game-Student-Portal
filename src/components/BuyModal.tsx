@@ -125,7 +125,12 @@ export default function BuyModal({ pdf, onClose, onResult }: BuyModalProps) {
                 </button>
               </div>
             )}
-            {couponMsg && <p className="text-xs text-red-500 font-bold mt-1.5">{couponMsg}</p>}
+            {couponMsg && (
+              <div className="mt-2 flex items-start gap-2 bg-red-50 border border-red-100 rounded-lg px-3 py-2">
+                <X className="w-3.5 h-3.5 text-red-500 mt-0.5 shrink-0" />
+                <p className="text-xs text-red-600 font-bold">{couponMsg}</p>
+              </div>
+            )}
           </div>
 
           {/* Price summary */}
