@@ -10,11 +10,12 @@ import { FirestorePdf, FirestorePurchase } from '../types';
 import PdfCard from '../components/PdfCard';
 import BuyModal from '../components/BuyModal';
 import type { BuyStatus } from '../services/paymentService';
-import { auth } from '../firebase';
+import { useAuth } from '../context/AuthContext';
 
 type PdfDoc = FirestorePdf & { id: string };
 
 export default function PdfLibrary() {
+  const { user, loading: authLoading } = useAuth();
   const [pdfs, setPdfs] = useState<PdfDoc[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'All' | 'Free' | 'Paid'>('All');
@@ -37,13 +38,19 @@ export default function PdfLibrary() {
   }, []);
 
   // Which paid PDFs this student already owns (so they show "Read", not "Buy").
+  // Wait for the restored session before reading, or a refresh shows owned PDFs
+  // as locked.
   useEffect(() => {
-    const uid = auth.currentUser?.uid;
-    if (!uid) return;
+    if (authLoading) return;
+    const uid = user?.uid;
+    if (!uid) {
+      setOwnedIds(new Set());
+      return;
+    }
     getWhere<FirestorePurchase>('purchases', 'uid', uid)
       .then((rows) => setOwnedIds(new Set(rows.map((r) => r.pdfId).filter(Boolean))))
       .catch(() => {});
-  }, []);
+  }, [user?.uid, authLoading]);
 
   const handleBuyResult = (pdfId: string, result: BuyStatus) => {
     if (result === 'paid') {

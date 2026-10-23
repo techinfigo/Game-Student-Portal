@@ -12,14 +12,13 @@ import pdfWorkerSrc from 'pdfjs-dist/build/pdf.worker.mjs?url';
 import { useAuth } from '../context/AuthContext';
 import { getDocById, getWhere } from '../services/dataService';
 import { FirestorePdf, FirestorePurchase } from '../types';
-import { auth } from '../firebase';
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorkerSrc;
 
 export default function PdfViewer() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { student } = useAuth();
+  const { student, user, loading: authLoading } = useAuth();
 
   const [pdfMeta, setPdfMeta] = useState<FirestorePdf | null>(null);
   const [isLoadingMeta, setIsLoadingMeta] = useState(true);
@@ -64,13 +63,18 @@ export default function PdfViewer() {
   const [checkingAccess, setCheckingAccess] = useState(true);
 
   // Unlock a paid PDF the student has bought — not only free ones.
+  // Wait for auth to finish restoring the session (on a refresh, the user is
+  // null for a moment) before deciding, otherwise a bought PDF re-locks.
   useEffect(() => {
-    const uid = auth.currentUser?.uid;
+    if (authLoading) return; // session still restoring — keep showing the spinner
+    const uid = user?.uid;
     if (!id || !uid) {
+      setHasPurchased(false);
       setCheckingAccess(false);
       return;
     }
     let active = true;
+    setCheckingAccess(true);
     getWhere<FirestorePurchase>('purchases', 'uid', uid)
       .then((rows) => {
         if (active) setHasPurchased(rows.some((r) => r.pdfId === id));
@@ -82,7 +86,7 @@ export default function PdfViewer() {
     return () => {
       active = false;
     };
-  }, [id]);
+  }, [id, user?.uid, authLoading]);
 
   const hasAccess = isFree || hasPurchased;
 
