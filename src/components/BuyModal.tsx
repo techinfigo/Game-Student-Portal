@@ -104,8 +104,15 @@ export default function BuyModal({ pdf, onClose, onResult }: BuyModalProps) {
                   <input
                     type="text"
                     value={couponInput}
-                    onChange={(e) => setCouponInput(e.target.value.toUpperCase())}
+                    onChange={(e) => setCouponInput(e.target.value.replace(/\s+/g, '').toUpperCase())}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        applyCoupon();
+                      }
+                    }}
                     placeholder="Enter code"
+                    autoCapitalize="characters"
                     className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2.5 pl-9 pr-3 text-sm font-bold uppercase tracking-wider focus:outline-none focus:border-game-teal"
                   />
                 </div>
