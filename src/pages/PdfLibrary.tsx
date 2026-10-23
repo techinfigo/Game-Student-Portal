@@ -8,7 +8,8 @@ import { Search, BookOpen } from 'lucide-react';
 import { getAll, getWhere } from '../services/dataService';
 import { FirestorePdf, FirestorePurchase } from '../types';
 import PdfCard from '../components/PdfCard';
-import { buyPdf } from '../services/paymentService';
+import BuyModal from '../components/BuyModal';
+import type { BuyStatus } from '../services/paymentService';
 import { auth } from '../firebase';
 
 type PdfDoc = FirestorePdf & { id: string };
@@ -20,7 +21,7 @@ export default function PdfLibrary() {
   const [searchQuery, setSearchQuery] = useState('');
   const [toast, setToast] = useState('');
   const [ownedIds, setOwnedIds] = useState<Set<string>>(new Set());
-  const [busyId, setBusyId] = useState<string | null>(null);
+  const [buyTarget, setBuyTarget] = useState<PdfDoc | null>(null);
 
   useEffect(() => {
     let isMounted = true;
@@ -44,24 +45,17 @@ export default function PdfLibrary() {
       .catch(() => {});
   }, []);
 
-  const handleBuy = async (pdf: PdfDoc) => {
-    if (busyId) return;
-    setBusyId(pdf.id);
-    try {
-      const result = await buyPdf({ id: pdf.id, title: pdf.title });
-      if (result === 'paid') {
-        setOwnedIds((prev) => new Set(prev).add(pdf.id));
-        setToast('Purchased! You can read it now.');
-      } else if (result === 'already_owned') {
-        setOwnedIds((prev) => new Set(prev).add(pdf.id));
-        setToast('You already own this PDF.');
-      } else {
-        setToast('Payment cancelled.');
-      }
-    } catch (err: any) {
-      setToast(err?.message || 'Payment failed. Please try again.');
-    } finally {
-      setBusyId(null);
+  const handleBuyResult = (pdfId: string, result: BuyStatus) => {
+    if (result === 'paid') {
+      setOwnedIds((prev) => new Set(prev).add(pdfId));
+      setToast('Purchased! You can read it now.');
+      setBuyTarget(null);
+    } else if (result === 'already_owned') {
+      setOwnedIds((prev) => new Set(prev).add(pdfId));
+      setToast('You already own this PDF.');
+      setBuyTarget(null);
+    } else {
+      setToast('Payment cancelled.');
     }
   };
 
@@ -128,7 +122,7 @@ export default function PdfLibrary() {
       ) : filteredPdfs.length > 0 ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
           {filteredPdfs.map((pdf) => (
-            <PdfCard key={pdf.id} pdf={pdf} owned={ownedIds.has(pdf.id)} busy={busyId === pdf.id} onBuy={() => handleBuy(pdf)} />
+            <PdfCard key={pdf.id} pdf={pdf} owned={ownedIds.has(pdf.id)} onBuy={() => setBuyTarget(pdf)} />
           ))}
         </div>
       ) : (
@@ -140,6 +134,15 @@ export default function PdfLibrary() {
           <p className="text-sm mt-1">Try adjusting your search or category filters.</p>
           <button onClick={() => { setActiveTab('All'); setSearchQuery(''); }} className="btn-secondary mt-8">Reset filters</button>
         </div>
+      )}
+
+      {/* Buy dialog with coupon */}
+      {buyTarget && (
+        <BuyModal
+          pdf={{ id: buyTarget.id, title: buyTarget.title, price: buyTarget.price }}
+          onClose={() => setBuyTarget(null)}
+          onResult={(status) => handleBuyResult(buyTarget.id, status)}
+        />
       )}
 
       {/* Toast */}

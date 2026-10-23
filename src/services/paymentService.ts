@@ -52,6 +52,29 @@ interface CreateOrderResponse {
   keyId?: string;
   pdfTitle?: string;
   alreadyOwned?: boolean;
+  originalAmount?: number;
+  discount?: number;
+  couponCode?: string;
+}
+
+export interface CouponPreview {
+  valid: boolean;
+  message?: string;
+  code?: string;
+  originalAmount?: number;
+  discount?: number;
+  finalAmount?: number;
+}
+
+/**
+ * Previews a coupon for a PDF so the buy dialog can show the discounted price
+ * before paying. Returns { valid: false, message } for a bad code.
+ */
+export async function validateCoupon(pdfId: string, couponCode: string): Promise<CouponPreview> {
+  const user = auth.currentUser;
+  if (!user) throw new Error('Please log in to use a coupon.');
+  const idToken = await user.getIdToken();
+  return postJson<CouponPreview>('/api/payments/validate-coupon', { idToken, pdfId, couponCode });
 }
 
 /**
@@ -60,7 +83,7 @@ interface CreateOrderResponse {
  * purchase). Resolves with 'paid' on success, 'already_owned' if the student
  * already bought it, or 'cancelled' if they closed the payment window.
  */
-export async function buyPdf(pdf: { id: string; title: string }): Promise<BuyStatus> {
+export async function buyPdf(pdf: { id: string; title: string }, couponCode?: string): Promise<BuyStatus> {
   const user = auth.currentUser;
   if (!user) throw new Error('Please log in to buy this PDF.');
   const idToken = await user.getIdToken();
@@ -68,6 +91,7 @@ export async function buyPdf(pdf: { id: string; title: string }): Promise<BuySta
   const order = await postJson<CreateOrderResponse>('/api/payments/create-order', {
     idToken,
     pdfId: pdf.id,
+    couponCode: couponCode || '',
   });
 
   if (order.alreadyOwned) return 'already_owned';
