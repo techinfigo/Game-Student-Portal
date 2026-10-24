@@ -44,6 +44,39 @@ export default function PdfViewer() {
     return () => window.removeEventListener('resize', measure);
   }, []);
 
+  // Screenshot / screen-capture deterrents. The browser can't truly block a
+  // screenshot, so we hide the content whenever the window loses focus or is
+  // backgrounded (which is when capture tools are used) and discourage
+  // Print Screen. The per-page watermark is the real traceable protection.
+  const [obscured, setObscured] = useState(false);
+  useEffect(() => {
+    const hide = () => setObscured(true);
+    const showAgain = () => setObscured(false);
+    const onVisibility = () => setObscured(document.hidden);
+    const onPrintScreen = (e: KeyboardEvent) => {
+      if (e.key === 'PrintScreen' || (e.ctrlKey && (e.key === 'p' || e.key === 'P'))) {
+        try {
+          navigator.clipboard?.writeText('Screenshots of this material are not permitted.');
+        } catch {}
+        setObscured(true);
+        window.setTimeout(() => setObscured(false), 1200);
+        e.preventDefault();
+      }
+    };
+    window.addEventListener('blur', hide);
+    window.addEventListener('focus', showAgain);
+    document.addEventListener('visibilitychange', onVisibility);
+    window.addEventListener('keyup', onPrintScreen);
+    document.addEventListener('keydown', onPrintScreen);
+    return () => {
+      window.removeEventListener('blur', hide);
+      window.removeEventListener('focus', showAgain);
+      document.removeEventListener('visibilitychange', onVisibility);
+      window.removeEventListener('keyup', onPrintScreen);
+      document.removeEventListener('keydown', onPrintScreen);
+    };
+  }, []);
+
   const watermarkName = student?.name || 'Student';
   const watermarkPhone = student?.phoneNumber || '';
   const watermarkDate = new Date().toLocaleDateString('en-IN', {
@@ -230,6 +263,17 @@ export default function PdfViewer() {
 
   return (
     <div className="fixed inset-0 bg-slate-100 z-[60] flex flex-col">
+      {/* Screen-capture cover: hides the page when the window is not focused */}
+      {obscured && (
+        <div className="fixed inset-0 z-[120] bg-slate-900 flex flex-col items-center justify-center gap-4 text-center px-8 select-none">
+          <ShieldCheck size={40} className="text-game-teal" />
+          <p className="text-white font-black text-lg">Content hidden</p>
+          <p className="text-slate-300 text-sm max-w-xs font-medium">
+            For security, this material is hidden while this window isn't active. Screenshots and screen recording are not permitted. Return to the window to keep reading.
+          </p>
+        </div>
+      )}
+
       {/* Top Bar */}
       <div className="bg-white border-b border-slate-200 px-6 py-4 flex items-center justify-between shadow-sm">
         <div className="flex items-center gap-4">
@@ -308,8 +352,8 @@ export default function PdfViewer() {
 
           {/* Diagonal traceable watermark */}
           {!isRenderingDoc && !loadError && (
-            <div className="absolute inset-0 grid grid-cols-2 grid-rows-4 pointer-events-none overflow-hidden rotate-[-25deg] scale-150 opacity-[0.12]">
-              {Array.from({ length: 16 }).map((_, i) => (
+            <div className="absolute inset-0 grid grid-cols-3 grid-rows-6 pointer-events-none overflow-hidden rotate-[-25deg] scale-150 opacity-[0.17]">
+              {Array.from({ length: 18 }).map((_, i) => (
                 <div key={i} className="text-black font-black text-lg whitespace-nowrap p-8 flex flex-col items-center justify-center border border-black/5">
                   <span className="opacity-100">{watermarkName}</span>
                   <span className="text-sm opacity-80 mt-1">{watermarkPhone}</span>
