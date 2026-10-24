@@ -102,6 +102,23 @@ export default function PdfViewer() {
     };
   }, [id]);
 
+  // Arrow keys (and Page Up/Down) flip between pages.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const tag = (e.target as HTMLElement)?.tagName;
+      if (tag === 'INPUT' || tag === 'TEXTAREA') return;
+      if (e.key === 'ArrowRight' || e.key === 'PageDown') {
+        e.preventDefault();
+        setCurrentPage((p) => Math.min(numPages || p, p + 1));
+      } else if (e.key === 'ArrowLeft' || e.key === 'PageUp') {
+        e.preventDefault();
+        setCurrentPage((p) => Math.max(1, p - 1));
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [numPages]);
+
   const isFree = pdfMeta?.isFree === true;
 
   const [hasPurchased, setHasPurchased] = useState(false);
@@ -354,7 +371,7 @@ export default function PdfViewer() {
 
           {/* Diagonal traceable watermark */}
           {!isRenderingDoc && !loadError && (
-            <div className="absolute inset-0 grid grid-cols-3 grid-rows-6 pointer-events-none overflow-hidden rotate-[-25deg] scale-150 opacity-[0.17]">
+            <div className="absolute inset-0 grid grid-cols-3 grid-rows-6 pointer-events-none overflow-hidden rotate-[-25deg] scale-150 opacity-[0.08]">
               {Array.from({ length: 18 }).map((_, i) => (
                 <div key={i} className="text-black font-black text-lg whitespace-nowrap p-8 flex flex-col items-center justify-center border border-black/5">
                   <span className="opacity-100">{watermarkName}</span>
