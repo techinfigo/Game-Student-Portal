@@ -31,6 +31,18 @@ export default function PdfViewer() {
   const [loadError, setLoadError] = useState('');
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const viewerRef = useRef<HTMLDivElement>(null);
+  const [containerWidth, setContainerWidth] = useState(0);
+
+  // Track the available width so each PDF page can be fit to it.
+  useEffect(() => {
+    const measure = () => {
+      if (viewerRef.current) setContainerWidth(viewerRef.current.clientWidth);
+    };
+    measure();
+    window.addEventListener('resize', measure);
+    return () => window.removeEventListener('resize', measure);
+  }, []);
 
   const watermarkName = student?.name || 'Student';
   const watermarkPhone = student?.phoneNumber || '';
@@ -136,13 +148,33 @@ export default function PdfViewer() {
       const canvas = canvasRef.current;
       if (!canvas) return;
 
-      const viewport = page.getViewport({ scale: (zoom / 100) * 1.5 });
-      canvas.width = viewport.width;
-      canvas.height = viewport.height;
+      // Fit the page to the available width, then apply the zoom on top. This
+      // keeps the whole page visible (no cut-off sides) at any screen size.
+      const unscaled = page.getViewport({ scale: 1 });
+      const cw = containerWidth || 700;
+      // Subtract the container's horizontal padding (p-4 on mobile, md:p-10 on
+      // desktop) plus a little room for the scrollbar, so the page fits fully.
+      const avail = cw - (cw > 640 ? 96 : 40);
+      const fitScale = Math.min(Math.max(avail / unscaled.width, 0.3), 3);
+      const scale = fitScale * (zoom / 100);
+
+      const outputScale = window.devicePixelRatio || 1;
+      const viewport = page.getViewport({ scale });
       const context = canvas.getContext('2d');
       if (!context) return;
 
-      page.render({ canvas, canvasContext: context, viewport }).promise.catch((error) => {
+      // Render at device pixel ratio for sharpness, display at logical size.
+      canvas.width = Math.floor(viewport.width * outputScale);
+      canvas.height = Math.floor(viewport.height * outputScale);
+      canvas.style.width = `${Math.floor(viewport.width)}px`;
+      canvas.style.height = `${Math.floor(viewport.height)}px`;
+
+      page.render({
+        canvas,
+        canvasContext: context,
+        viewport,
+        transform: outputScale !== 1 ? [outputScale, 0, 0, outputScale, 0, 0] : undefined,
+      }).promise.catch((error) => {
         if (!isCancelled) console.error('Failed to render PDF page:', error);
       });
     });
@@ -150,7 +182,7 @@ export default function PdfViewer() {
     return () => {
       isCancelled = true;
     };
-  }, [pdfDoc, currentPage, zoom]);
+  }, [pdfDoc, currentPage, zoom, containerWidth]);
 
   if (isLoadingMeta) {
     return (
@@ -252,7 +284,8 @@ export default function PdfViewer() {
 
       {/* Viewer Area */}
       <div
-        className="flex-1 overflow-auto p-4 md:p-16 flex justify-center bg-slate-100/30 scrollbar-thin scrollbar-thumb-slate-200 scrollbar-track-transparent select-none"
+        ref={viewerRef}
+        className="flex-1 overflow-auto p-4 md:p-10 flex justify-center items-start bg-slate-100/30 scrollbar-thin scrollbar-thumb-slate-200 scrollbar-track-transparent select-none"
         onContextMenu={(e) => e.preventDefault()}
         onCopy={(e) => e.preventDefault()}
       >
