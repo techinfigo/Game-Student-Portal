@@ -91,32 +91,41 @@ export default function PdfViewer() {
   const hasAccess = isFree || hasPurchased;
 
   useEffect(() => {
-    if (!pdfMeta || !hasAccess || !pdfMeta.fileUrl) return;
+    if (!pdfMeta || !hasAccess || !id || !user) return;
     let isCancelled = false;
     setIsRenderingDoc(true);
     setLoadError('');
 
-    const loadingTask = pdfjsLib.getDocument(pdfMeta.fileUrl);
-    loadingTask.promise
-      .then((doc) => {
+    // Load the PDF through the website proxy (same request pdf.js makes, but the
+    // server fetches the file and checks access — avoids Storage CORS issues).
+    (async () => {
+      try {
+        const idToken = await user.getIdToken();
+        const base = import.meta.env.VITE_WEBSITE_API_URL || 'https://www.gameacademy.in';
+        const loadingTask = pdfjsLib.getDocument({
+          url: `${base}/api/pdf?pdfId=${encodeURIComponent(id)}`,
+          httpHeaders: { Authorization: `Bearer ${idToken}` },
+          withCredentials: false,
+        });
+        const doc = await loadingTask.promise;
         if (isCancelled) return;
         setPdfDoc(doc);
         setNumPages(doc.numPages);
         setCurrentPage(1);
         setIsRenderingDoc(false);
-      })
-      .catch((error) => {
+      } catch (error) {
         console.error('Failed to load PDF document:', error);
         if (!isCancelled) {
           setLoadError('Unable to load this PDF file.');
           setIsRenderingDoc(false);
         }
-      });
+      }
+    })();
 
     return () => {
       isCancelled = true;
     };
-  }, [pdfMeta, hasAccess]);
+  }, [pdfMeta, hasAccess, id, user]);
 
   useEffect(() => {
     if (!pdfDoc) return;
