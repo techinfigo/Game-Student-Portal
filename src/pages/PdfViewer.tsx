@@ -191,7 +191,9 @@ export default function PdfViewer() {
       const fitScale = Math.min(Math.max(avail / unscaled.width, 0.3), 3);
       const scale = fitScale * (zoom / 100);
 
-      const outputScale = window.devicePixelRatio || 1;
+      // Cap at 2x — rendering at 3x (some phones) is much slower for little
+      // visible gain.
+      const outputScale = Math.min(window.devicePixelRatio || 1, 2);
       const viewport = page.getViewport({ scale });
       const context = canvas.getContext('2d');
       if (!context) return;
