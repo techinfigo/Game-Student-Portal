@@ -34,14 +34,25 @@ export default function PdfViewer() {
   const viewerRef = useRef<HTMLDivElement>(null);
   const [containerWidth, setContainerWidth] = useState(0);
 
-  // Track the available width so each PDF page can be fit to it.
+  // Track the available width so each PDF page can be fit to it. We re-measure
+  // after the viewer has actually mounted/laid out (the ref is null on first
+  // paint while the access check runs), otherwise the page can overflow on
+  // mobile.
   useEffect(() => {
     const measure = () => {
       if (viewerRef.current) setContainerWidth(viewerRef.current.clientWidth);
     };
     measure();
+    const r = requestAnimationFrame(measure);
+    const t = window.setTimeout(measure, 300);
     window.addEventListener('resize', measure);
-    return () => window.removeEventListener('resize', measure);
+    window.addEventListener('orientationchange', measure);
+    return () => {
+      cancelAnimationFrame(r);
+      clearTimeout(t);
+      window.removeEventListener('resize', measure);
+      window.removeEventListener('orientationchange', measure);
+    };
   }, []);
 
   // Screenshot / screen-capture deterrents. The browser can't truly block a
@@ -201,7 +212,9 @@ export default function PdfViewer() {
       // Fit the page to the available width, then apply the zoom on top. This
       // keeps the whole page visible (no cut-off sides) at any screen size.
       const unscaled = page.getViewport({ scale: 1 });
-      const cw = containerWidth || 700;
+      // Measure the actual viewer width at render time — the ref is mounted by
+      // now, so this is reliable even on first load (the state value can lag).
+      const cw = viewerRef.current?.clientWidth || containerWidth || (typeof window !== 'undefined' ? window.innerWidth : 700);
       // Subtract the container's horizontal padding (p-4 on mobile, md:p-10 on
       // desktop) plus a little room for the scrollbar, so the page fits fully.
       const avail = cw - (cw > 640 ? 96 : 40);
