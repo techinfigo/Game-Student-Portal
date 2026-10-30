@@ -4,9 +4,20 @@
  */
 
 import { Suspense, lazy } from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import Layout from './components/Layout';
 import { AuthProvider, useAuth } from './context/AuthContext';
+
+// Gate a page behind login, remembering where the visitor wanted to go so the
+// login screen can send them back there (e.g. a deep link to buy a PDF).
+function RequireAuth({ isAuthenticated, children }: { isAuthenticated: boolean; children: JSX.Element }) {
+  const location = useLocation();
+  if (!isAuthenticated) {
+    const dest = encodeURIComponent(location.pathname + location.search);
+    return <Navigate to={`/login?redirect=${dest}`} replace />;
+  }
+  return children;
+}
 
 const Login = lazy(() => import('./pages/Login'));
 const Dashboard = lazy(() => import('./pages/Dashboard'));
@@ -46,34 +57,13 @@ function AppRoutes() {
           <Routes>
             <Route path="/login" element={<Login />} />
             
-            <Route 
-              path="/" 
-              element={isAuthenticated ? <Dashboard /> : <Navigate to="/login" />} 
-            />
-            <Route 
-              path="/library" 
-              element={isAuthenticated ? <PdfLibrary /> : <Navigate to="/login" />} 
-            />
-            <Route 
-              path="/library/:id" 
-              element={isAuthenticated ? <PdfViewer /> : <Navigate to="/login" />} 
-            />
-            <Route
-              path="/videos"
-              element={isAuthenticated ? <FreeVideos /> : <Navigate to="/login" />}
-            />
-            <Route
-              path="/resources"
-              element={isAuthenticated ? <FreeResources /> : <Navigate to="/login" />}
-            />
-            <Route
-              path="/purchases"
-              element={isAuthenticated ? <MyPurchases /> : <Navigate to="/login" />} 
-            />
-            <Route 
-              path="/profile" 
-              element={isAuthenticated ? <Profile /> : <Navigate to="/login" />} 
-            />
+            <Route path="/" element={<RequireAuth isAuthenticated={isAuthenticated}><Dashboard /></RequireAuth>} />
+            <Route path="/library" element={<RequireAuth isAuthenticated={isAuthenticated}><PdfLibrary /></RequireAuth>} />
+            <Route path="/library/:id" element={<RequireAuth isAuthenticated={isAuthenticated}><PdfViewer /></RequireAuth>} />
+            <Route path="/videos" element={<RequireAuth isAuthenticated={isAuthenticated}><FreeVideos /></RequireAuth>} />
+            <Route path="/resources" element={<RequireAuth isAuthenticated={isAuthenticated}><FreeResources /></RequireAuth>} />
+            <Route path="/purchases" element={<RequireAuth isAuthenticated={isAuthenticated}><MyPurchases /></RequireAuth>} />
+            <Route path="/profile" element={<RequireAuth isAuthenticated={isAuthenticated}><Profile /></RequireAuth>} />
 
             <Route path="*" element={<Navigate to="/" />} />
           </Routes>

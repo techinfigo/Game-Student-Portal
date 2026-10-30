@@ -4,7 +4,7 @@
  */
 
 import { useState, FormEvent } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { GraduationCap, Phone, ShieldCheck, Loader2, AlertCircle } from 'lucide-react';
 import { motion } from 'motion/react';
 import { sendOtp, verifyOtp } from '../services/authService';
@@ -17,6 +17,8 @@ export default function Login() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const redirectTo = searchParams.get('redirect');
   const { logoUrl } = useBranding();
 
   const handleSendOtp = async (e: FormEvent) => {
@@ -51,7 +53,7 @@ export default function Login() {
     setIsSubmitting(true);
     try {
       await verifyOtp(phone, otp);
-      navigate('/');
+      navigate(redirectTo || '/');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Invalid code. Please try again.');
     } finally {

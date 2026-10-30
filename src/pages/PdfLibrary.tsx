@@ -4,6 +4,7 @@
  */
 
 import { useEffect, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { Search, BookOpen } from 'lucide-react';
 import { getAll, getWhere } from '../services/dataService';
 import { FirestorePdf, FirestorePurchase } from '../types';
@@ -23,6 +24,24 @@ export default function PdfLibrary() {
   const [toast, setToast] = useState('');
   const [ownedIds, setOwnedIds] = useState<Set<string>>(new Set());
   const [buyTarget, setBuyTarget] = useState<PdfDoc | null>(null);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [autoBuyDone, setAutoBuyDone] = useState(false);
+
+  // Deep link from the website ("Get Access"): ?buy=<pdfId> opens the buy
+  // dialog for that PDF automatically once it's loaded (and not already owned).
+  useEffect(() => {
+    if (autoBuyDone) return;
+    const buyId = searchParams.get('buy');
+    if (!buyId || pdfs.length === 0) return;
+    const target = pdfs.find((p) => p.id === buyId);
+    if (target && !ownedIds.has(target.id) && target.isFree !== true) {
+      setBuyTarget(target);
+    }
+    setAutoBuyDone(true);
+    // Clean the URL so refreshing doesn't reopen the dialog.
+    searchParams.delete('buy');
+    setSearchParams(searchParams, { replace: true });
+  }, [searchParams, pdfs, ownedIds, autoBuyDone, setSearchParams]);
 
   useEffect(() => {
     let isMounted = true;
