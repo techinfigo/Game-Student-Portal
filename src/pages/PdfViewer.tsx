@@ -15,6 +15,8 @@ import { FirestorePdf, FirestorePurchase } from '../types';
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorkerSrc;
 
+type PageDim = { w: number; h: number };
+
 export default function PdfViewer() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -25,30 +27,35 @@ export default function PdfViewer() {
 
   const [pdfDoc, setPdfDoc] = useState<PDFDocumentProxy | null>(null);
   const [numPages, setNumPages] = useState(0);
+  const [pageDims, setPageDims] = useState<PageDim[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
   const [zoom, setZoom] = useState(100);
   const [isRenderingDoc, setIsRenderingDoc] = useState(false);
   const [loadError, setLoadError] = useState('');
 
-  const canvasRef = useRef<HTMLCanvasElement>(null);
   const viewerRef = useRef<HTMLDivElement>(null);
-  const [containerWidth, setContainerWidth] = useState(0);
+  const pageWrapRefs = useRef<(HTMLDivElement | null)[]>([]);
+  const canvasRefs = useRef<(HTMLCanvasElement | null)[]>([]);
+  const [availWidth, setAvailWidth] = useState(0);
 
-  // Track the available width so each PDF page can be fit to it. We re-measure
-  // after the viewer has actually mounted/laid out (the ref is null on first
-  // paint while the access check runs), otherwise the page can overflow on
-  // mobile.
+  // Lazy-render bookkeeping.
+  const inViewRef = useRef<Set<number>>(new Set());
+  const ratioRef = useRef<Map<number, number>>(new Map());
+  const renderedRef = useRef<Map<number, number>>(new Map()); // page -> epoch it was drawn at
+  const renderingRef = useRef<Set<number>>(new Set());
+  const epochRef = useRef(0);
+  const ensureRef = useRef<() => void>(() => {});
+
+  // --- available width (drives fit-to-width) -------------------------------
   useEffect(() => {
     const measure = () => {
-      if (viewerRef.current) setContainerWidth(viewerRef.current.clientWidth);
+      if (viewerRef.current) setAvailWidth(viewerRef.current.clientWidth);
     };
     measure();
     const r = requestAnimationFrame(measure);
     const t = window.setTimeout(measure, 300);
     window.addEventListener('resize', measure);
     window.addEventListener('orientationchange', measure);
-    // The viewer mounts only after the access check, so watch it once it exists
-    // and re-measure — this triggers a re-render at the true fit width.
     let ro: ResizeObserver | undefined;
     if (typeof ResizeObserver !== 'undefined') {
       ro = new ResizeObserver(measure);
@@ -67,10 +74,14 @@ export default function PdfViewer() {
     };
   }, []);
 
-  // Screenshot / screen-capture deterrents. The browser can't truly block a
-  // screenshot, so we hide the content whenever the window loses focus or is
-  // backgrounded (which is when capture tools are used) and discourage
-  // Print Screen. The per-page watermark is the real traceable protection.
+  // The CSS width each page is drawn at. At 100% zoom this is exactly the
+  // viewer width (minus padding), so a page can never be wider than the view
+  // and never gets cut off. Zoom scales it up, and the container scrolls.
+  const sidePad = availWidth > 640 ? 80 : 32; // matches p-10 / p-4
+  const baseFit = Math.max((availWidth || (typeof window !== 'undefined' ? window.innerWidth : 800)) - sidePad - 8, 220);
+  const columnWidth = Math.round(baseFit * (zoom / 100));
+
+  // --- screenshot / screen-capture deterrents ------------------------------
   const [obscured, setObscured] = useState(false);
   useEffect(() => {
     const hide = () => setObscured(true);
@@ -108,6 +119,7 @@ export default function PdfViewer() {
     year: 'numeric',
   });
 
+  // --- load metadata -------------------------------------------------------
   useEffect(() => {
     let isMounted = true;
     if (!id) {
@@ -125,33 +137,13 @@ export default function PdfViewer() {
     };
   }, [id]);
 
-  // Arrow keys (and Page Up/Down) flip between pages.
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      const tag = (e.target as HTMLElement)?.tagName;
-      if (tag === 'INPUT' || tag === 'TEXTAREA') return;
-      if (e.key === 'ArrowRight' || e.key === 'PageDown') {
-        e.preventDefault();
-        setCurrentPage((p) => Math.min(numPages || p, p + 1));
-      } else if (e.key === 'ArrowLeft' || e.key === 'PageUp') {
-        e.preventDefault();
-        setCurrentPage((p) => Math.max(1, p - 1));
-      }
-    };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [numPages]);
-
   const isFree = pdfMeta?.isFree === true;
-
   const [hasPurchased, setHasPurchased] = useState(false);
   const [checkingAccess, setCheckingAccess] = useState(true);
 
-  // Unlock a paid PDF the student has bought — not only free ones.
-  // Wait for auth to finish restoring the session (on a refresh, the user is
-  // null for a moment) before deciding, otherwise a bought PDF re-locks.
+  // --- access check (free OR purchased) ------------------------------------
   useEffect(() => {
-    if (authLoading) return; // session still restoring — keep showing the spinner
+    if (authLoading) return;
     const uid = user?.uid;
     if (!id || !uid) {
       setHasPurchased(false);
@@ -175,14 +167,13 @@ export default function PdfViewer() {
 
   const hasAccess = isFree || hasPurchased;
 
+  // --- load the PDF document ----------------------------------------------
   useEffect(() => {
     if (!pdfMeta || !hasAccess || !id || !user) return;
     let isCancelled = false;
     setIsRenderingDoc(true);
     setLoadError('');
 
-    // Load the PDF through the website proxy (same request pdf.js makes, but the
-    // server fetches the file and checks access — avoids Storage CORS issues).
     (async () => {
       try {
         const idToken = await user.getIdToken();
@@ -212,67 +203,158 @@ export default function PdfViewer() {
     };
   }, [pdfMeta, hasAccess, id, user]);
 
+  // --- read every page's natural size (for placeholders / aspect ratios) ---
   useEffect(() => {
     if (!pdfDoc) return;
-    let isCancelled = false;
-
-    pdfDoc.getPage(currentPage).then((page) => {
-      if (isCancelled) return;
-      const canvas = canvasRef.current;
-      if (!canvas) return;
-
-      // Fit the page to the available width, then apply the zoom on top. This
-      // keeps the whole page visible (no cut-off sides) at any screen size.
-      const unscaled = page.getViewport({ scale: 1 });
-      // Measure the actual viewer width at render time — the ref is mounted by
-      // now, so this is reliable even on first load (the state value can lag).
-      const cw = viewerRef.current?.clientWidth || containerWidth || (typeof window !== 'undefined' ? window.innerWidth : 700);
-      // Subtract the container's horizontal padding (p-4 on mobile, md:p-10 on
-      // desktop) plus a little room for the scrollbar, so the page fits fully.
-      const avail = Math.max(cw - (cw > 640 ? 96 : 40), 200);
-      // Fit the page to the available width. No lower floor: a very wide
-      // (landscape) page must still shrink enough to fit, or it gets cut off.
-      const pageW = unscaled.width || avail;
-      const fitScale = Math.min(avail / pageW, 3);
-      const scale = fitScale * (zoom / 100);
-
-      // Cap at 2x — rendering at 3x (some phones) is much slower for little
-      // visible gain.
-      const outputScale = Math.min(window.devicePixelRatio || 1, 2);
-      const viewport = page.getViewport({ scale });
-      const context = canvas.getContext('2d');
-      if (!context) return;
-
-      // Render at device pixel ratio for sharpness, display at logical size.
-      canvas.width = Math.floor(viewport.width * outputScale);
-      canvas.height = Math.floor(viewport.height * outputScale);
-      canvas.style.width = `${Math.floor(viewport.width)}px`;
-      // At fit (<=100% zoom) never let the canvas spill past the viewport —
-      // this is the hard guarantee that pages are never cut off on the right.
-      // When zoomed in past 100% we allow it to grow and the container scrolls.
-      if (zoom <= 100) {
-        canvas.style.maxWidth = '100%';
-        canvas.style.height = 'auto';
-      } else {
-        canvas.style.maxWidth = 'none';
-        canvas.style.height = `${Math.floor(viewport.height)}px`;
+    let cancelled = false;
+    (async () => {
+      const dims: PageDim[] = [];
+      for (let i = 1; i <= pdfDoc.numPages; i++) {
+        try {
+          const pg = await pdfDoc.getPage(i);
+          const vp = pg.getViewport({ scale: 1 });
+          dims.push({ w: vp.width, h: vp.height });
+        } catch {
+          dims.push({ w: 1, h: 1.414 });
+        }
+        if (cancelled) return;
       }
+      if (!cancelled) setPageDims(dims);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [pdfDoc]);
 
-      page.render({
-        canvas,
-        canvasContext: context,
-        viewport,
-        transform: outputScale !== 1 ? [outputScale, 0, 0, outputScale, 0, 0] : undefined,
-      }).promise.catch((error) => {
-        if (!isCancelled) console.error('Failed to render PDF page:', error);
-      });
+  // --- render a single page to its canvas ----------------------------------
+  const renderPage = async (pageNum: number, epoch: number) => {
+    if (!pdfDoc) return;
+    const page = await pdfDoc.getPage(pageNum);
+    if (epoch !== epochRef.current) return;
+    const canvas = canvasRefs.current[pageNum - 1];
+    if (!canvas) return;
+
+    const unscaled = page.getViewport({ scale: 1 });
+    const cssScale = columnWidth / unscaled.width; // fit this page to the column
+    const outputScale = Math.min(window.devicePixelRatio || 1, 2);
+    const viewport = page.getViewport({ scale: cssScale * outputScale });
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    canvas.width = Math.max(1, Math.floor(viewport.width));
+    canvas.height = Math.max(1, Math.floor(viewport.height));
+    // Display at the column width; height follows the bitmap's aspect ratio.
+    canvas.style.width = '100%';
+    canvas.style.height = 'auto';
+
+    try {
+      await page.render({ canvas, canvasContext: ctx, viewport }).promise;
+      if (epoch === epochRef.current) renderedRef.current.set(pageNum, epoch);
+    } catch (error) {
+      if (epoch === epochRef.current) console.error('Failed to render PDF page:', error);
+    }
+  };
+
+  // Render the in-view pages (plus their neighbours) and free the far ones.
+  const ensureRendered = () => {
+    if (!pdfDoc || !numPages) return;
+    const epoch = epochRef.current;
+    const want = new Set<number>();
+    inViewRef.current.forEach((p) => {
+      want.add(p);
+      if (p > 1) want.add(p - 1);
+      if (p < numPages) want.add(p + 1);
     });
 
-    return () => {
-      isCancelled = true;
-    };
-  }, [pdfDoc, currentPage, zoom, containerWidth]);
+    // Free canvases that are far from the viewport to keep memory bounded.
+    renderedRef.current.forEach((_, p) => {
+      if (!want.has(p)) {
+        const c = canvasRefs.current[p - 1];
+        if (c) {
+          c.width = 0;
+          c.height = 0;
+        }
+        renderedRef.current.delete(p);
+      }
+    });
 
+    want.forEach((p) => {
+      if (renderedRef.current.get(p) === epoch) return;
+      if (renderingRef.current.has(p)) return;
+      renderingRef.current.add(p);
+      renderPage(p, epoch).finally(() => renderingRef.current.delete(p));
+    });
+  };
+  ensureRef.current = ensureRendered;
+
+  // Re-render when the fit width or zoom changes (new epoch invalidates old art).
+  useEffect(() => {
+    if (!pdfDoc) return;
+    epochRef.current += 1;
+    renderedRef.current.clear();
+    ensureRef.current();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [columnWidth, pdfDoc, numPages]);
+
+  // --- observe which pages are on screen (lazy render + page indicator) ----
+  useEffect(() => {
+    if (!pdfDoc || !viewerRef.current || !numPages) return;
+    const io = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((e) => {
+          const p = Number((e.target as HTMLElement).dataset.page);
+          if (!p) return;
+          if (e.isIntersecting) {
+            inViewRef.current.add(p);
+            ratioRef.current.set(p, e.intersectionRatio);
+          } else {
+            inViewRef.current.delete(p);
+            ratioRef.current.delete(p);
+          }
+        });
+        // The most-visible page becomes the "current page" indicator.
+        let best = 0;
+        let bestR = -1;
+        ratioRef.current.forEach((r, p) => {
+          if (r > bestR) {
+            bestR = r;
+            best = p;
+          }
+        });
+        if (best > 0) setCurrentPage(best);
+        ensureRef.current();
+      },
+      { root: viewerRef.current, rootMargin: '300px 0px', threshold: [0, 0.1, 0.25, 0.5, 0.75, 1] }
+    );
+    pageWrapRefs.current.forEach((el) => el && io.observe(el));
+    return () => io.disconnect();
+  }, [pdfDoc, numPages, pageDims.length]);
+
+  // --- page navigation (scrolls to the page) -------------------------------
+  const goToPage = (p: number) => {
+    const clamped = Math.min(Math.max(1, p), numPages || 1);
+    const el = pageWrapRefs.current[clamped - 1];
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const tag = (e.target as HTMLElement)?.tagName;
+      if (tag === 'INPUT' || tag === 'TEXTAREA') return;
+      if (e.key === 'ArrowRight' || e.key === 'ArrowDown' || e.key === 'PageDown') {
+        e.preventDefault();
+        goToPage(currentPage + 1);
+      } else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp' || e.key === 'PageUp') {
+        e.preventDefault();
+        goToPage(currentPage - 1);
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentPage, numPages]);
+
+  // --- states --------------------------------------------------------------
   if (isLoadingMeta) {
     return (
       <div className="fixed inset-0 bg-slate-100 z-[60] flex items-center justify-center">
@@ -317,9 +399,11 @@ export default function PdfViewer() {
     );
   }
 
+  const pageList = numPages > 0 ? Array.from({ length: numPages }, (_, i) => i + 1) : [];
+
   return (
     <div className="fixed inset-0 bg-slate-100 z-[60] flex flex-col">
-      {/* Screen-capture cover: hides the page when the window is not focused */}
+      {/* Screen-capture cover: hides pages when the window is not focused */}
       {obscured && (
         <div className="fixed inset-0 z-[120] bg-slate-900 flex flex-col items-center justify-center gap-4 text-center px-8 select-none">
           <ShieldCheck size={40} className="text-game-teal" />
@@ -345,8 +429,8 @@ export default function PdfViewer() {
         <div className="hidden md:flex items-center gap-8">
           <div className="flex items-center gap-3 bg-slate-50 rounded-lg px-3 py-1.5 border border-slate-100">
             <button
-              disabled={currentPage === 1}
-              onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
+              disabled={currentPage <= 1}
+              onClick={() => goToPage(currentPage - 1)}
               className="disabled:opacity-20 p-1 hover:text-game-teal transition-colors text-slate-400"
             >
               <ChevronLeft size={20} />
@@ -355,8 +439,8 @@ export default function PdfViewer() {
               PAGE {currentPage} / {numPages || '—'}
             </span>
             <button
-              disabled={currentPage === numPages}
-              onClick={() => setCurrentPage((prev) => Math.min(numPages, prev + 1))}
+              disabled={currentPage >= numPages}
+              onClick={() => goToPage(currentPage + 1)}
               className="disabled:opacity-20 p-1 hover:text-game-teal transition-colors text-slate-400"
             >
               <ChevronRight size={20} />
@@ -382,48 +466,63 @@ export default function PdfViewer() {
         </div>
       </div>
 
-      {/* Viewer Area */}
+      {/* Viewer Area — continuous vertical scroll */}
       <div
         ref={viewerRef}
         className="flex-1 overflow-auto p-4 md:p-10 bg-slate-100/30 scrollbar-thin scrollbar-thumb-slate-200 scrollbar-track-transparent select-none"
         onContextMenu={(e) => e.preventDefault()}
         onCopy={(e) => e.preventDefault()}
       >
-        {/* w-fit + mx-auto: centers the page when it fits, and lets it scroll
-            (left edge reachable) when zoomed in past the viewport width. */}
-        <div className="relative bg-white shadow-[0_10px_40px_rgba(0,0,0,0.05)] border border-slate-200 rounded-sm overflow-hidden select-none mx-auto w-max">
-          {isRenderingDoc && (
-            <div className="w-[600px] max-w-[80vw] aspect-[1/1.41] flex items-center justify-center">
-              <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-game-teal"></div>
-            </div>
-          )}
+        {isRenderingDoc && (
+          <div className="flex items-center justify-center py-24">
+            <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-game-teal"></div>
+          </div>
+        )}
 
-          {loadError && (
-            <div className="w-[600px] max-w-[80vw] aspect-[1/1.41] flex items-center justify-center text-slate-400 text-sm font-medium">
-              {loadError}
-            </div>
-          )}
+        {loadError && (
+          <div className="flex items-center justify-center py-24 text-slate-400 text-sm font-medium">{loadError}</div>
+        )}
 
-          {!isRenderingDoc && !loadError && (
-            <canvas ref={canvasRef} className="block select-none pointer-events-none" />
-          )}
+        {!isRenderingDoc && !loadError && (
+          <div className="flex flex-col items-center gap-6">
+            {pageList.map((p) => {
+              const dim = pageDims[p - 1];
+              const ratio = dim ? `${dim.w} / ${dim.h}` : '1 / 1.414';
+              return (
+                <div
+                  key={p}
+                  data-page={p}
+                  ref={(el) => {
+                    pageWrapRefs.current[p - 1] = el;
+                  }}
+                  className="relative bg-white shadow-[0_10px_40px_rgba(0,0,0,0.05)] border border-slate-200 rounded-sm overflow-hidden select-none"
+                  style={{ width: columnWidth, aspectRatio: ratio }}
+                >
+                  <canvas
+                    ref={(el) => {
+                      canvasRefs.current[p - 1] = el;
+                    }}
+                    className="block w-full h-auto select-none pointer-events-none"
+                  />
 
-          {/* Diagonal traceable watermark */}
-          {!isRenderingDoc && !loadError && (
-            <div className="absolute inset-0 grid grid-cols-3 grid-rows-6 pointer-events-none overflow-hidden rotate-[-25deg] scale-150 opacity-[0.08]">
-              {Array.from({ length: 18 }).map((_, i) => (
-                <div key={i} className="text-black font-black text-lg whitespace-nowrap p-8 flex flex-col items-center justify-center border border-black/5">
-                  <span className="opacity-100">{watermarkName}</span>
-                  <span className="text-sm opacity-80 mt-1">{watermarkPhone}</span>
-                  <span className="text-[10px] opacity-70 mt-1">{watermarkDate}</span>
+                  {/* Diagonal traceable watermark */}
+                  <div className="absolute inset-0 grid grid-cols-3 grid-rows-6 pointer-events-none overflow-hidden rotate-[-25deg] scale-150 opacity-[0.08]">
+                    {Array.from({ length: 18 }).map((_, i) => (
+                      <div key={i} className="text-black font-black text-lg whitespace-nowrap p-8 flex flex-col items-center justify-center border border-black/5">
+                        <span className="opacity-100">{watermarkName}</span>
+                        <span className="text-sm opacity-80 mt-1">{watermarkPhone}</span>
+                        <span className="text-[10px] opacity-70 mt-1">{watermarkDate}</span>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Interaction blocker */}
+                  <div className="absolute inset-0 z-10" onContextMenu={(e) => e.preventDefault()} />
                 </div>
-              ))}
-            </div>
-          )}
-
-          {/* Interaction blocker over the canvas */}
-          <div className="absolute inset-0 z-10" onContextMenu={(e) => e.preventDefault()} />
-        </div>
+              );
+            })}
+          </div>
+        )}
       </div>
 
       {/* License Notice */}
@@ -436,16 +535,16 @@ export default function PdfViewer() {
       {/* Mobile Controls */}
       <div className="md:hidden bg-white border-t border-slate-200 px-6 py-4 flex items-center justify-between">
         <button
-          disabled={currentPage === 1}
-          onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
+          disabled={currentPage <= 1}
+          onClick={() => goToPage(currentPage - 1)}
           className="flex items-center gap-1 font-black text-[10px] uppercase tracking-widest disabled:opacity-20 text-slate-500 hover:text-game-teal transition-colors"
         >
           <ChevronLeft size={16} /> Previous
         </button>
         <span className="text-[10px] font-black tracking-[0.2em] text-slate-400">PAGE {currentPage} / {numPages || '—'}</span>
         <button
-          disabled={currentPage === numPages}
-          onClick={() => setCurrentPage((prev) => Math.min(numPages, prev + 1))}
+          disabled={currentPage >= numPages}
+          onClick={() => goToPage(currentPage + 1)}
           className="flex items-center gap-1 font-black text-[10px] uppercase tracking-widest disabled:opacity-20 text-slate-500 hover:text-game-teal transition-colors"
         >
           Next <ChevronRight size={16} />
