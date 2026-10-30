@@ -47,11 +47,23 @@ export default function PdfViewer() {
     const t = window.setTimeout(measure, 300);
     window.addEventListener('resize', measure);
     window.addEventListener('orientationchange', measure);
+    // The viewer mounts only after the access check, so watch it once it exists
+    // and re-measure — this triggers a re-render at the true fit width.
+    let ro: ResizeObserver | undefined;
+    if (typeof ResizeObserver !== 'undefined') {
+      ro = new ResizeObserver(measure);
+      const attach = () => {
+        if (viewerRef.current) ro!.observe(viewerRef.current);
+        else window.setTimeout(attach, 150);
+      };
+      attach();
+    }
     return () => {
       cancelAnimationFrame(r);
       clearTimeout(t);
       window.removeEventListener('resize', measure);
       window.removeEventListener('orientationchange', measure);
+      ro?.disconnect();
     };
   }, []);
 
@@ -217,8 +229,11 @@ export default function PdfViewer() {
       const cw = viewerRef.current?.clientWidth || containerWidth || (typeof window !== 'undefined' ? window.innerWidth : 700);
       // Subtract the container's horizontal padding (p-4 on mobile, md:p-10 on
       // desktop) plus a little room for the scrollbar, so the page fits fully.
-      const avail = cw - (cw > 640 ? 96 : 40);
-      const fitScale = Math.min(Math.max(avail / unscaled.width, 0.3), 3);
+      const avail = Math.max(cw - (cw > 640 ? 96 : 40), 200);
+      // Fit the page to the available width. No lower floor: a very wide
+      // (landscape) page must still shrink enough to fit, or it gets cut off.
+      const pageW = unscaled.width || avail;
+      const fitScale = Math.min(avail / pageW, 3);
       const scale = fitScale * (zoom / 100);
 
       // Cap at 2x — rendering at 3x (some phones) is much slower for little
@@ -232,7 +247,16 @@ export default function PdfViewer() {
       canvas.width = Math.floor(viewport.width * outputScale);
       canvas.height = Math.floor(viewport.height * outputScale);
       canvas.style.width = `${Math.floor(viewport.width)}px`;
-      canvas.style.height = `${Math.floor(viewport.height)}px`;
+      // At fit (<=100% zoom) never let the canvas spill past the viewport —
+      // this is the hard guarantee that pages are never cut off on the right.
+      // When zoomed in past 100% we allow it to grow and the container scrolls.
+      if (zoom <= 100) {
+        canvas.style.maxWidth = '100%';
+        canvas.style.height = 'auto';
+      } else {
+        canvas.style.maxWidth = 'none';
+        canvas.style.height = `${Math.floor(viewport.height)}px`;
+      }
 
       page.render({
         canvas,
@@ -361,11 +385,13 @@ export default function PdfViewer() {
       {/* Viewer Area */}
       <div
         ref={viewerRef}
-        className="flex-1 overflow-auto p-4 md:p-10 flex justify-center items-start bg-slate-100/30 scrollbar-thin scrollbar-thumb-slate-200 scrollbar-track-transparent select-none"
+        className="flex-1 overflow-auto p-4 md:p-10 bg-slate-100/30 scrollbar-thin scrollbar-thumb-slate-200 scrollbar-track-transparent select-none"
         onContextMenu={(e) => e.preventDefault()}
         onCopy={(e) => e.preventDefault()}
       >
-        <div className="relative bg-white shadow-[0_10px_40px_rgba(0,0,0,0.05)] border border-slate-200 rounded-sm overflow-hidden select-none">
+        {/* w-fit + mx-auto: centers the page when it fits, and lets it scroll
+            (left edge reachable) when zoomed in past the viewport width. */}
+        <div className="relative bg-white shadow-[0_10px_40px_rgba(0,0,0,0.05)] border border-slate-200 rounded-sm overflow-hidden select-none mx-auto w-max">
           {isRenderingDoc && (
             <div className="w-[600px] max-w-[80vw] aspect-[1/1.41] flex items-center justify-center">
               <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-game-teal"></div>
