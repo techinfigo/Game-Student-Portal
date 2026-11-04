@@ -4,7 +4,7 @@
  */
 
 import { useState } from 'react';
-import { NavLink, useNavigate } from 'react-router-dom';
+import { NavLink, Link, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard,
   BookOpen,
@@ -49,7 +49,7 @@ export default function Sidebar() {
   return (
     <div className="hidden lg:flex flex-col w-64 bg-slate-950 border-r border-white/5 h-screen sticky top-0">
       <div className="p-8 flex justify-center">
-        <div className="w-full h-12 flex items-center justify-center">
+        <Link to="/" aria-label="Go to dashboard" className="w-full h-12 flex items-center justify-center">
           {showLogoImage ? (
             <img
               src={trimmedLogoUrl}
@@ -62,7 +62,7 @@ export default function Sidebar() {
               Game
             </span>
           )}
-        </div>
+        </Link>
       </div>
 
       <nav className="flex-1 px-4 mt-2 space-y-1">

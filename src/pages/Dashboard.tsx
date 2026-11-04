@@ -107,16 +107,16 @@ export default function Dashboard() {
               <h3 className="text-xl font-black tracking-tight">My Courses</h3>
             </div>
             <p className="text-white/70 text-sm font-medium max-w-md">
-              Access your enrolled video courses on Classplus
+              Access your enrolled video courses on the GAME Live App
             </p>
           </div>
           <span className="relative z-10 shrink-0 inline-flex items-center gap-2 bg-game-gold text-slate-900 px-5 py-2.5 rounded-lg font-bold text-sm tracking-wide transition-all group-hover:brightness-110 active:scale-[0.98]">
-            Open Classplus
+            Open GAME Live App
             <ExternalLink size={16} />
           </span>
         </a>
         <p className="text-xs text-slate-400 font-medium mt-3 px-1">
-          Your purchased video courses are hosted on Classplus.
+          Your purchased video courses are hosted on the GAME Live App.
         </p>
       </section>
 
