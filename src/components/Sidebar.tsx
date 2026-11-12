@@ -4,7 +4,7 @@
  */
 
 import { useState } from 'react';
-import { NavLink, Link, useNavigate } from 'react-router-dom';
+import { NavLink, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard,
   BookOpen,
@@ -35,6 +35,10 @@ export default function Sidebar() {
   // update gets a fresh attempt instead of inheriting the previous failure.
   const [failedLogoUrl, setFailedLogoUrl] = useState<string | null>(null);
 
+  // Clicking the logo takes the student back to the main website home page
+  // (one click), instead of the portal's own dashboard route.
+  const websiteUrl = import.meta.env.VITE_WEBSITE_API_URL || 'https://www.gameacademy.in';
+
   const trimmedLogoUrl = logoUrl.trim();
   // Branding loads async, so logoUrl is empty on first paint. Showing the
   // wordmark then — rather than pointing <img> at a '/logo.png' that may not
@@ -49,7 +53,7 @@ export default function Sidebar() {
   return (
     <div className="hidden lg:flex flex-col w-64 bg-slate-950 border-r border-white/5 h-screen sticky top-0">
       <div className="p-8 flex justify-center">
-        <Link to="/" aria-label="Go to dashboard" className="w-full h-12 flex items-center justify-center">
+        <a href={websiteUrl} aria-label="Go to GAME Academy website home" className="w-full h-12 flex items-center justify-center">
           {showLogoImage ? (
             <img
               src={trimmedLogoUrl}
@@ -62,7 +66,7 @@ export default function Sidebar() {
               Game
             </span>
           )}
-        </Link>
+        </a>
       </div>
 
       <nav className="flex-1 px-4 mt-2 space-y-1">
