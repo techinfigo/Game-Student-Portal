@@ -36,8 +36,10 @@ export default function Sidebar() {
   const [failedLogoUrl, setFailedLogoUrl] = useState<string | null>(null);
 
   // Clicking the logo takes the student back to the main website home page
-  // (one click), instead of the portal's own dashboard route.
-  const websiteUrl = import.meta.env.VITE_WEBSITE_API_URL || 'https://www.gameacademy.in';
+  // (one click), instead of the portal's own dashboard route. Hardcoded to the
+  // branded domain on purpose — VITE_WEBSITE_API_URL points at the raw Vercel
+  // deployment URL, which we don't want showing in the address bar.
+  const websiteUrl = 'https://www.gameacademy.in';
 
   const trimmedLogoUrl = logoUrl.trim();
   // Branding loads async, so logoUrl is empty on first paint. Showing the
