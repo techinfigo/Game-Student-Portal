@@ -10,17 +10,22 @@ import { auth, db } from '../firebase';
 import { signInWithSsoToken } from '../services/authService';
 
 /**
- * The website hands a logged-in student over as `/?sso=<firebaseCustomToken>`.
+ * The website hands a logged-in student over as `/<path>?sso=<firebaseCustomToken>`.
  * Read it at module load — before React mounts and before any route decides —
- * and strip it from the URL straight away so the token is never left visible in
- * the address bar, in history, or in a shared link. Reading it once here also
- * means a StrictMode double-mount can't find a half-consumed URL.
+ * and strip ONLY the `sso` param straight away so the token is never left visible
+ * in the address bar, in history, or in a shared link. Any other query params
+ * (e.g. a `?buy=<pdfId>` deep link handed over alongside the token) are kept so
+ * the destination route still receives them. Reading it once here also means a
+ * StrictMode double-mount can't find a half-consumed URL.
  */
 const ssoToken = (() => {
   if (typeof window === 'undefined') return null;
-  const token = new URLSearchParams(window.location.search).get('sso');
+  const params = new URLSearchParams(window.location.search);
+  const token = params.get('sso');
   if (token) {
-    window.history.replaceState({}, '', window.location.pathname);
+    params.delete('sso');
+    const rest = params.toString();
+    window.history.replaceState({}, '', window.location.pathname + (rest ? `?${rest}` : ''));
   }
   return token;
 })();
