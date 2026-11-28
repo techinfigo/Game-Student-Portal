@@ -83,7 +83,10 @@ export interface FirestoreAnnouncement {
 }
 
 export interface FirestoreSiteSettings {
-  classplusPortalLink?: string;
+  classplusPortalLink?: string; // GAME Live App (Classplus)
+  testSeriesPortalLink?: string; // GAME Test Series Portal
+  offerPercent?: number; // first-purchase discount %, GAME to confirm (default 15)
+  offerCouponCode?: string; // code the student applies at checkout on the Live App
 }
 
 export interface FirestorePdf {

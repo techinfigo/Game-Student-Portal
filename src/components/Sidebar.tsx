@@ -3,34 +3,45 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard,
   BookOpen,
-  Video,
   ShoppingBag,
   User,
   LogOut,
-  GraduationCap,
   FolderOpen
 } from 'lucide-react';
 import { useBranding } from '../hooks/useBranding';
 import { useAuth } from '../context/AuthContext';
+import { getWhere } from '../services/dataService';
+import { FirestorePurchase } from '../types';
 
+// Every item lives in exactly one place (the redesign's core rule).
 const navItems = [
   { name: 'Dashboard', path: '/', icon: LayoutDashboard },
-  { name: 'PDF Library', path: '/library', icon: BookOpen },
-  { name: 'Free Videos', path: '/videos', icon: Video },
-  { name: 'Free Resources', path: '/resources', icon: FolderOpen },
-  { name: 'My Purchases', path: '/purchases', icon: ShoppingBag },
+  { name: 'My Resources', path: '/my-resources', icon: FolderOpen, badge: 'owned' as const },
+  { name: 'Free Library', path: '/free', icon: BookOpen, tag: 'FREE' as const },
+  { name: 'Orders', path: '/orders', icon: ShoppingBag },
   { name: 'Profile', path: '/profile', icon: User },
 ];
 
 export default function Sidebar() {
   const { logoUrl } = useBranding();
-  const { logout } = useAuth();
+  const { logout, user } = useAuth();
   const navigate = useNavigate();
+  const [ownedCount, setOwnedCount] = useState<number | null>(null);
+
+  // Sidebar badge on My Resources = number of items the student owns.
+  useEffect(() => {
+    let on = true;
+    if (!user) { setOwnedCount(null); return; }
+    getWhere<FirestorePurchase>('purchases', 'uid', user.uid).then((rows) => {
+      if (on) setOwnedCount(rows.filter((r) => r.status === 'Success').length);
+    });
+    return () => { on = false; };
+  }, [user]);
   // Remember which URL failed rather than a bare flag, so a later branding
   // update gets a fresh attempt instead of inheriting the previous failure.
   const [failedLogoUrl, setFailedLogoUrl] = useState<string | null>(null);
@@ -85,7 +96,13 @@ export default function Sidebar() {
             }
           >
             <item.icon size={18} className="shrink-0" />
-            <span className="text-sm tracking-tight">{item.name}</span>
+            <span className="text-sm tracking-tight flex-1">{item.name}</span>
+            {item.badge === 'owned' && ownedCount != null && ownedCount > 0 && (
+              <span className="text-[10px] font-black bg-white/10 text-white px-1.5 py-0.5 rounded-md min-w-[20px] text-center">{ownedCount}</span>
+            )}
+            {item.tag === 'FREE' && (
+              <span className="text-[8px] font-black tracking-widest bg-game-gold/20 text-game-gold px-1.5 py-0.5 rounded">FREE</span>
+            )}
           </NavLink>
         ))}
       </nav>
