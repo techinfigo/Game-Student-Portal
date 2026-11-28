@@ -39,6 +39,13 @@ export interface StudentProfile {
   email?: string;
   joinedDate?: string;
   avatar?: string;
+  // Added for the dashboard redesign (profile completion + first-purchase offer)
+  education?: string;
+  branch?: string;
+  passingYear?: string;
+  examGoal?: string;
+  alsoInterested?: string[];
+  offerStartedAt?: number; // epoch ms, set ONCE when profile first hits 100%
 }
 
 interface AuthContextValue {
@@ -47,6 +54,7 @@ interface AuthContextValue {
   loading: boolean;
   ssoPending: boolean;
   logout: () => Promise<void>;
+  refreshStudent: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
@@ -72,6 +80,39 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       });
   }, []);
 
+  const loadProfile = async (firebaseUser: User) => {
+    const fallbackProfile: StudentProfile = {
+      uid: firebaseUser.uid,
+      name: firebaseUser.displayName || 'Student',
+      phoneNumber: firebaseUser.phoneNumber || '',
+    };
+    try {
+      const snapshot = await getDoc(doc(db, 'users', firebaseUser.uid));
+      if (snapshot.exists()) {
+        const data = snapshot.data();
+        setStudent({
+          uid: firebaseUser.uid,
+          name: data.name || data.displayName || fallbackProfile.name,
+          phoneNumber: data.phoneNumber || fallbackProfile.phoneNumber,
+          email: data.email,
+          joinedDate: data.joinedDate,
+          avatar: data.avatar,
+          education: data.education || '',
+          branch: data.branch || '',
+          passingYear: data.passingYear || '',
+          examGoal: data.examGoal || '',
+          alsoInterested: Array.isArray(data.alsoInterested) ? data.alsoInterested : [],
+          offerStartedAt: typeof data.offerStartedAt === 'number' ? data.offerStartedAt : undefined,
+        });
+      } else {
+        setStudent(fallbackProfile);
+      }
+    } catch (error) {
+      console.error('Failed to load student profile:', error);
+      setStudent(fallbackProfile);
+    }
+  };
+
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       setUser(firebaseUser);
@@ -82,37 +123,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return;
       }
 
-      const fallbackProfile: StudentProfile = {
-        uid: firebaseUser.uid,
-        name: firebaseUser.displayName || 'Student',
-        phoneNumber: firebaseUser.phoneNumber || '',
-      };
-
-      try {
-        const snapshot = await getDoc(doc(db, 'users', firebaseUser.uid));
-        if (snapshot.exists()) {
-          const data = snapshot.data();
-          setStudent({
-            uid: firebaseUser.uid,
-            name: data.name || data.displayName || fallbackProfile.name,
-            phoneNumber: data.phoneNumber || fallbackProfile.phoneNumber,
-            email: data.email,
-            joinedDate: data.joinedDate,
-            avatar: data.avatar,
-          });
-        } else {
-          setStudent(fallbackProfile);
-        }
-      } catch (error) {
-        console.error('Failed to load student profile:', error);
-        setStudent(fallbackProfile);
-      }
-
+      await loadProfile(firebaseUser);
       setLoading(false);
     });
 
     return unsubscribe;
   }, []);
+
+  // Re-read the profile doc after a save so the banner / strength update live.
+  const refreshStudent = async () => {
+    if (auth.currentUser) await loadProfile(auth.currentUser);
+  };
 
   const logout = async () => {
     await signOut(auth);
@@ -120,7 +141,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   return (
     <AuthContext.Provider
-      value={{ user, student, loading: loading || ssoPending, ssoPending, logout }}
+      value={{ user, student, loading: loading || ssoPending, ssoPending, logout, refreshStudent }}
     >
       {children}
     </AuthContext.Provider>
